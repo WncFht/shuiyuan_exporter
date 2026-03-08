@@ -1,0 +1,15 @@
+[project]
+name = "shuiyuan-exporter"
+version = "0.1.0"
+description = "Export SJTU Shuiyuan Forum topics as Markdown documents."
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+  "beautifulsoup4==4.12.3",
+  "dumb_menu==1.0.8",
+  "requests==2.32.3",
+  "simple_term_menu==1.6.4",
+]
+
+[tool.uv]
+package = false

@@ -83,7 +83,7 @@ def export_input(save_dir:str = default_save_dir):
     topic = input('请输入帖子编号:(退出请输入"???")\n')
     if topic == "???":
         raise Exception("Exit.")
-    export_exec(topic)
+    export_exec(topic, save_dir=save_dir)
 
 
 def cookie_set():
@@ -164,7 +164,9 @@ def choose_list()->Tuple[str, List]:
     """
     local_vars = {}
 
-    with open("quality_list.py", "r") as f:
+    quality_list_path = Path(__file__).with_name("quality_list.py")
+
+    with open(quality_list_path, "r", encoding='utf-8') as f:
         exec(f.read(), None, local_vars)
     lists_only = {k: v for k, v in local_vars.items() if isinstance(v, list)}
     list_names = [k for k in lists_only.keys()]
@@ -183,21 +185,26 @@ def choose_list()->Tuple[str, List]:
         raise NotImplementedError(f"Unsupported OS: {host_os}")
 
 
-if __name__ == "__main__":
+def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="The script is created to export posts on Shuiyuan Forum as markdown documents.")
     parser.add_argument('-b', '--batch', nargs='+',type=str, help='For test and CI: -b 1 2 3 means download the topic 1, 2, 3')
     parser.add_argument('-c', '--clean', action='store_true', help='clean the posts folder for possible meaningless md')
     parser.add_argument('-n','--not_ask_cookie', action='store_true', help='if ask for cookie or use saved cookie directly')
     parser.add_argument('-s', '--stat', action='store_true', help="stat the time consuming analysis and save.")
     parser.add_argument('-l','--list', action='store_true', help="list the available quality list and pull one in batch mode.)")
-    args = parser.parse_args()
-    ask = not args.not_ask_cookie if args.not_ask_cookie else True
+    return parser
+
+
+def main(argv=None):
+    parser = build_parser()
+    args = parser.parse_args(argv)
+    ask = not args.not_ask_cookie
     if args.list:
-        name, choose_list = choose_list()
-        dir = f"{default_save_dir}/{name}"
-        os.makedirs(dir, exist_ok=True)
-        run(choose_list, ask_cookie=False, save_dir=dir)
-        sys.exit(0)
+        name, selected_list = choose_list()
+        save_dir = f"{default_save_dir}/{name}"
+        os.makedirs(save_dir, exist_ok=True)
+        run(selected_list, ask_cookie=ask, save_dir=save_dir)
+        return 0
     if args.batch:
         print(args.batch)
         run(args.batch, ask_cookie=ask)
@@ -207,3 +214,8 @@ if __name__ == "__main__":
         stat("run(['276006'], False)")
     else:
         run(ask_cookie=ask)
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

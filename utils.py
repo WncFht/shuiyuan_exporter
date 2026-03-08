@@ -84,9 +84,10 @@ def make_request(param: ReqParam, once=True):
     cacheable:bool = ".json" in param.url # 目前只有同一个topic下的json是会多次请求的
     if cacheable and param.url in _request_posts_cache.keys():
         return _request_posts_cache[param.url]
-    global _req_session
-    if not _init_session:
+    global _init_session, _req_session
+    if not _init_session or _req_session is None:
         _req_session = init_session()
+        _init_session = True
     if not _req_session:
         raise NotImplementedError
     def req_once():
