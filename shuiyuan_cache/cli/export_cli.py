@@ -1,4 +1,4 @@
-from shuiyuan_cache.export.legacy_export import main
+from shuiyuan_cache.export.cli_support import main
 
 
 if __name__ == '__main__':

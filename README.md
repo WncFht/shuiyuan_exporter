@@ -4,13 +4,15 @@
 
 ## 项目现在是怎么工作的
 
-脚本的主流程在 `main.py` 里，大致分成 5 步：
+导出主流程现在已经收敛到 `shuiyuan_cache/export/` 包内，大致分成 5 步：
 
-1. `raw_post()` 拉取整帖的原始 Markdown 内容。
-2. `img_replace()` 下载图片并把 `upload://...` 替换成 `./images/...`。
-3. `match_replace()` 把附件链接替换成论坛上的真实 URL。
-4. `video_replace()` 把视频链接替换成真实 URL。
-5. `audio_replace()` 把音频链接替换成真实 URL。
+1. `raw_markdown.py` 拉取整帖的原始 Markdown 内容。
+2. `shuiyuan_cache/export/image_handler.py` 下载图片并把 `upload://...` 替换成 `./images/...`。
+3. `shuiyuan_cache/export/attachments_handler.py` 把附件链接替换成论坛上的真实 URL。
+4. `shuiyuan_cache/export/video_handler.py` 把视频链接替换成真实 URL。
+5. `shuiyuan_cache/export/audio_handler.py` 把音频链接替换成真实 URL。
+
+当前推荐的导出 CLI 是 `shuiyuan_cache/cli/export_cli.py`；根目录 `main.py` 仅保留为兼容入口。
 
 它依赖的核心接口形态大概是：
 
@@ -127,7 +129,7 @@ uv run python -m shuiyuan_cache.cli.auth_cli setup --browser chromium
 ### 交互模式
 
 ```bash
-uv run python main.py
+uv run python -m shuiyuan_cache.cli.export_cli
 ```
 
 然后按提示：
@@ -152,7 +154,7 @@ https://shuiyuan.sjtu.edu.cn/t/topic/75214
 如果你已经把 Cookie 放进 `cookies.txt`，最方便的是直接：
 
 ```bash
-uv run python main.py -n -b 75214
+uv run python -m shuiyuan_cache.cli.export_cli -n -b 75214
 ```
 
 其中：
@@ -163,7 +165,7 @@ uv run python main.py -n -b 75214
 多个帖子：
 
 ```bash
-uv run python main.py -n -b 75214 276006 123456
+uv run python -m shuiyuan_cache.cli.export_cli -n -b 75214 276006 123456
 ```
 
 ## 常用命令
@@ -171,13 +173,13 @@ uv run python main.py -n -b 75214 276006 123456
 ### 查看帮助
 
 ```bash
-uv run python main.py --help
+uv run python -m shuiyuan_cache.cli.export_cli --help
 ```
 
 ### 交互式选择内置列表
 
 ```bash
-uv run python main.py -l
+uv run python -m shuiyuan_cache.cli.export_cli -l
 ```
 
 说明：
@@ -190,13 +192,13 @@ uv run python main.py -l
 如果因为 Cookie 失效导出了登录页，比如出现 `SJTU Single Sign On.md`，可以执行：
 
 ```bash
-uv run python main.py -c
+uv run python -m shuiyuan_cache.cli.export_cli -c
 ```
 
 ### 做简单性能统计
 
 ```bash
-uv run python main.py -s
+uv run python -m shuiyuan_cache.cli.export_cli -s
 ```
 
 ### 运行辅助测试脚本
@@ -232,7 +234,7 @@ posts/75214/
 cd /Users/fanghaotian/Desktop/src/shuiyuan_exporter
 uv sync
 printf '%s\n' '把你的完整Cookie粘到这里' > cookies.txt
-uv run python main.py -n -b 75214
+uv run python -m shuiyuan_cache.cli.export_cli -n -b 75214
 ```
 
 如果能在 `posts/75214/` 下看到 Markdown 和图片目录，就说明整个流程已经跑通了。
@@ -269,15 +271,19 @@ uv run python main.py -n -b 75214
 4. **媒体解析层**：根据 `cooked` HTML 把图片/附件/音视频补成真实链接。
 5. **输出层**：决定是保存为 Markdown、返回 JSON，还是写进 notebook / note。
 
-当前仓库最值得复用的文件是：
+当前仓库最值得复用的模块是：
 
-- `main.py`
-- `utils.py`
-- `image_handler.py`
-- `attachments_handler.py`
-- `audio_handler.py`
-- `video_handler.py`
+- `shuiyuan_cache/fetch/`
+- `shuiyuan_cache/sync/`
+- `shuiyuan_cache/analysis/`
+- `shuiyuan_cache/export/raw_markdown.py`
+- `shuiyuan_cache/export/topic_exporter.py`
+- `shuiyuan_cache/export/media_rewrite.py`
+- `shuiyuan_cache/export/compat.py`
 
 ## 兼容旧方式
 
 如果你暂时还想沿用旧方式，`requirements.txt` 仍然保留；但后续建议优先使用 `uv sync` 和 `uv run ...`。
+
+
+兼容说明：如果你确实还想沿用旧命令，`uv run python main.py ...` 仍然可用，但推荐优先使用 `uv run python -m shuiyuan_cache.cli.export_cli ...`。
