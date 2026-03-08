@@ -4,21 +4,35 @@ from pathlib import Path
 from shuiyuan_cache.core.config import CacheConfig
 from shuiyuan_cache.core.exceptions import ShuiyuanCacheError
 from shuiyuan_cache.core.progress import build_stream_progress_reporter
+from shuiyuan_cache.skill_api.runtime import (
+    default_skill_cache_root,
+    default_skill_cookie_path,
+)
 from shuiyuan_cache.sync.topic_sync import TopicSyncService
 
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="Sync Shuiyuan topics into local cache."
+        description="Sync Shuiyuan topics into local cache.",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument("topic", help="Topic id or Shuiyuan topic URL")
     parser.add_argument(
         "--mode", choices=["full", "incremental", "refresh-tail"], default="incremental"
     )
     parser.add_argument(
-        "--cache-root", default="cache", help="Local cache root directory"
+        "--cache-root",
+        default=str(default_skill_cache_root()),
+        help="Local cache root directory",
     )
-    parser.add_argument("--cookie-path", default="cookies.txt", help="Cookie file path")
+    parser.add_argument(
+        "--cookie-path",
+        default=str(default_skill_cookie_path()),
+        help="Cookie file path",
+    )
+    parser.add_argument(
+        "--base-url", default="https://shuiyuan.sjtu.edu.cn", help="Shuiyuan base URL"
+    )
     parser.add_argument("--no-images", action="store_true", help="Skip image download")
     parser.add_argument(
         "--force",
@@ -33,6 +47,7 @@ def main(argv=None) -> int:
     config = CacheConfig(
         cache_root=Path(args.cache_root),
         cookie_path=Path(args.cookie_path),
+        base_url=args.base_url,
         download_images=not args.no_images,
     )
     service = TopicSyncService(config)

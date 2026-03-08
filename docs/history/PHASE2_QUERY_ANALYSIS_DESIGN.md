@@ -2,7 +2,7 @@
 
 版本：`v0.1`  
 状态：历史设计稿（query / summarize / inspect 已实现）  
-依赖文档：`TECHNICAL_PLAN.md`、`docs/SYSTEM_DESIGN.md`、`docs/SCHEMA_AND_API.md`、`docs/PHASE1_EXECUTION_SPEC.md`
+依赖文档：`docs/history/TECHNICAL_PLAN.md`、`docs/SYSTEM_DESIGN.md`、`docs/SCHEMA_AND_API.md`、`docs/history/PHASE1_EXECUTION_SPEC.md`
 
 ## 1. 文档说明
 

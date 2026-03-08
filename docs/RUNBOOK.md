@@ -1,210 +1,173 @@
-# Shuiyuan 本地运行手册
+# Shuiyuan 运行手册
 
-状态：当前运行手册（截至 2026-03-08）
+状态：当前有效运行手册（skill-first / cache-first）
 
-## 1. 这份文档解决什么问题
+## 1. 当前推荐工作流
 
-面向当前已经实现好的仓库，这份手册只回答三件事：
-
-1. 在 mac 上怎么把认证跑通；
-2. 怎么把帖子同步到本地缓存；
-3. 怎么在本地做导出、查询和摘要分析。
-
-如果你想看设计背景，请读：
-
-- `docs/SYSTEM_DESIGN.md`
-- `docs/SCHEMA_AND_API.md`
-- `docs/PHASE2_QUERY_ANALYSIS_DESIGN.md`
-
-如果你只想把系统跑起来，优先看本文件。
-
-## 2. 当前推荐工作流
-
-当前仓库已经形成了比较清晰的分层：
-
-1. `auth_cli`：管理登录态
-2. `sync_cli`：把 Shuiyuan 帖子同步到本地缓存
-3. `query_cli` / `summary_cli`：只读本地缓存做检索和摘要
-4. `export_cli`：把缓存转换成 Markdown 阅读产物
-
-推荐顺序是：
+推荐顺序：
 
 ```text
-auth -> sync -> query/summary -> export
+auth -> ensure_cached -> query/summary -> export
 ```
 
-也就是说：
+含义：
 
-- 先解决认证；
-- 再把数据拉到本地；
-- 后续分析尽量本地化；
-- 只有需要给人看 Markdown 时再导出。
+1. 先建立长期可复用登录态；
+2. 再把 topic 同步到本地缓存；
+3. 查询和摘要尽量只读本地缓存；
+4. 只有需要给人阅读 Markdown 时再导出。
 
-## 3. mac 上的初始化步骤
+## 2. 默认运行时目录
 
-### 3.1 安装依赖
+当前默认不会把运行时数据写在 repo 根目录，而是写到：
+
+```text
+~/.local/share/shuiyuan-cache-skill/
+```
+
+主要结构：
+
+```text
+~/.local/share/shuiyuan-cache-skill/
+  cache/
+  exports/
+  cookies.txt
+```
+
+认证相关：
+
+```text
+cache/auth/auth.json
+cache/auth/browser_profile/
+```
+
+详细结构见：`references/runtime_layout.md`。
+
+## 3. 初始化（mac）
 
 ```bash
 cd /Users/fanghaotian/Desktop/src/shuiyuan_exporter
 uv python install 3.12
-uv sync
+uv sync --group dev
 ```
 
-### 3.2 建立独立浏览器认证
+## 4. 建立认证
 
-推荐使用项目自己的浏览器 profile，而不是长期手工复制 Cookie：
+推荐方式：独立浏览器 profile + `auth.json`。
 
 ```bash
 uv run python -m shuiyuan_cache.cli.auth_cli setup
 ```
 
-默认行为：
-
-- 使用独立的 Edge profile；
-- 你手动登录一次饮水思源；
-- 终端回车后保存认证状态。
-
-落盘位置：
-
-- `cache/auth/browser_profile/`
-- `cache/auth/auth.json`
-- `cookies.txt`
-
-查看状态：
+查看认证状态：
 
 ```bash
 uv run python -m shuiyuan_cache.cli.auth_cli status
 ```
 
-如果只是从现有 profile 重新导出认证：
+如果只想复用现有 profile 重新导出登录态：
 
 ```bash
 uv run python -m shuiyuan_cache.cli.auth_cli refresh
 ```
 
-## 4. 同步帖子到本地缓存
+说明：
 
-### 4.1 同步单个 topic
+- 默认使用 skill runtime 路径；
+- 认证优先读取 `cache/auth/auth.json`；
+- `cookies.txt` 只作为兼容和回退。
+
+## 5. 缓存一个 topic
+
+推荐使用机器安全的脚本入口：
+
+```bash
+uv run python scripts/ensure_cached.py 456491
+uv run python scripts/ensure_cached.py https://shuiyuan.sjtu.edu.cn/t/topic/456491 --refresh-mode incremental
+uv run python scripts/ensure_cached.py 456491 --refresh-mode full --no-images
+```
+
+如果你更喜欢传统 CLI，也可以：
 
 ```bash
 uv run python -m shuiyuan_cache.cli.sync_cli 456491
 ```
 
-也可以传完整 URL：
+## 6. 查询和摘要
+
+查询：
 
 ```bash
-uv run python -m shuiyuan_cache.cli.sync_cli https://shuiyuan.sjtu.edu.cn/t/topic/456491/
+uv run python scripts/query_topic.py 456491 --keyword 安全 --limit 5
+uv run python scripts/query_topic.py 456491 --author FleetSnowfluff
+uv run python scripts/query_topic.py 456491 --has-images --order desc
 ```
 
-### 4.2 常用参数
+摘要：
 
 ```bash
-uv run python -m shuiyuan_cache.cli.sync_cli 456491 --mode full
-uv run python -m shuiyuan_cache.cli.sync_cli 456491 --mode refresh-tail --force
-uv run python -m shuiyuan_cache.cli.sync_cli 456491 --no-images
+uv run python scripts/summarize_topic.py 456491 --focus-keyword Openclaw
+uv run python scripts/summarize_topic.py 456491 --only-op
+uv run python scripts/summarize_topic.py 456491 --recent-days 7
 ```
 
-### 4.3 主要缓存目录
+这一层应尽量只读本地缓存，而不是重新联网抓取。
+
+## 7. 导出 Markdown
+
+```bash
+uv run python scripts/export_topic.py 456491
+```
+
+默认输出：
 
 ```text
-cache/
-  auth/
-  db/
-  media/images/
-  raw/topics/<topic_id>/
+~/.local/share/shuiyuan-cache-skill/exports/<topic_id>/
 ```
 
-重点目录说明：
+导出策略：
 
-- `cache/raw/topics/<topic_id>/topic.json`：topic 元数据；
-- `cache/raw/topics/<topic_id>/pages/json/*.json`：分页 JSON；
-- `cache/raw/topics/<topic_id>/pages/raw/*.md`：分页 raw markdown；
-- `cache/raw/post_refs/<topic_id>/*.raw.md`：按需抓取的单帖 raw；
-- `cache/media/images/`：去重后的图片缓存；
-- `cache/db/shuiyuan.sqlite`：结构化索引数据库。
-
-## 5. 基于本地缓存做分析
-
-### 5.1 查询
-
-```bash
-uv run python -m shuiyuan_cache.cli.query_cli 456491 --keyword 安全 --limit 5
-uv run python -m shuiyuan_cache.cli.query_cli 456491 --author FleetSnowfluff
-uv run python -m shuiyuan_cache.cli.query_cli 456491 --has-images --order desc
-```
-
-### 5.2 摘要
-
-```bash
-uv run python -m shuiyuan_cache.cli.summary_cli 456491 --focus-keyword Openclaw
-uv run python -m shuiyuan_cache.cli.summary_cli 456491 --only-op
-uv run python -m shuiyuan_cache.cli.summary_cli 456491 --recent-days 7
-```
-
-这一层默认应该尽量不联网，而是直接读本地数据库和缓存。
-
-## 6. 导出 Markdown
-
-### 6.1 当前导出策略
-
-当前导出链路已经改成“缓存优先”：
-
-- 优先读 `cache/raw/topics/<topic_id>/` 下已有的 `topic.json`、分页 raw、分页 json；
-- 引用楼层时优先读 `raw/post_refs/<topic_id>/*.raw.md`；
+- 优先读 `cache/raw/topics/<topic_id>/`；
+- 引用楼层优先读 `cache/raw/post_refs/<topic_id>/`；
 - 图片优先复用 `cache/media/images/`；
-- 只有本地缺失时才补抓网络。
+- 本地缺失时才补抓网络。
 
-这意味着：
+## 8. 机器输出约定
 
-- 先 `sync` 再 `export` 会更稳定；
-- 重复导出同一个 topic 会明显更快；
-- 导出和分析已经基本与抓取解耦。
+`scripts/*.py` 约定：
 
-### 6.2 导出命令
+- `stdout`：只输出 JSON
+- `stderr`：输出进度和阶段日志
 
-```bash
-uv run python -m shuiyuan_cache.cli.export_cli -n -b 456491
-```
+适合：
 
-兼容旧入口：
+- skill 调用
+- shell pipeline
+- 上层 agent 集成
 
-```bash
-uv run python main.py -n -b 456491
-```
+## 9. 兼容入口
 
-输出位置：
-
-```text
-posts/456491/
-```
-
-## 7. 已验证的命令
-
-以下命令在当前仓库中已经实际跑通：
+下面入口仍保留，但属于 legacy：
 
 ```bash
-uv run python -m shuiyuan_cache.cli.export_cli -n -b 456491
-uv run python main.py -n -b 456491
-uv run python -m shuiyuan_cache.cli.query_cli 456491 --keyword 安全 --limit 2
-uv run python -m shuiyuan_cache.cli.summary_cli 456491 --focus-keyword Openclaw
+uv run python -m shuiyuan_cache.cli.export_cli
+uv run python main.py
 ```
 
-## 8. 对后续 skill 的直接启发
+它们主要用于兼容旧习惯，不是当前推荐主路径。
 
-如果后面要做 Shuiyuan skill，建议不要让 skill 直接承担“抓取 + 分析 + 导出”所有责任，而是拆成两段：
+## 10. 校验命令
 
-### 8.1 数据侧
+```bash
+uv run pre-commit run --all-files
+uv run pytest
+```
 
-- 用认证 profile 保持长期可用登录态；
-- 用 `sync_cli` 或同等内部 API 增量拉取 topic；
-- 持续积累本地缓存与数据库。
+## 11. 进一步阅读
 
-### 8.2 skill 侧
-
-- 以本地缓存为主回答问题；
-- 只在缓存缺失时触发抓取；
-- 输出结构化 post 列表、摘要、相关帖子建议。
-
-一句话说：
-
-> 让抓取成为一个可重复的底层服务，让 skill 主要消费本地缓存。
+- `docs/README.md`
+- `docs/SKILL_DESIGN.md`
+- `docs/EXPORT_IO_AND_RATE_LIMITING.md`
+- `references/runtime_layout.md`
+- `references/output_schema.md`
+- `references/troubleshooting.md`

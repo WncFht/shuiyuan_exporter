@@ -21,9 +21,13 @@ from shuiyuan_cache.export.constants import (
     details_end_pagination,
     layer_pagination,
 )
+from shuiyuan_cache.export.runtime_defaults import (
+    DEFAULT_EXPORT_CACHE_ROOT,
+    DEFAULT_EXPORT_COOKIE_PATH,
+)
 
-_cookie_default_path = "./cookies.txt"
-_default_cache_root = "cache"
+_cookie_default_path = DEFAULT_EXPORT_COOKIE_PATH
+_default_cache_root = DEFAULT_EXPORT_CACHE_ROOT
 
 
 def resolve_auth_cookie_header(

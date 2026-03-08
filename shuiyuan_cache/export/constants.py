@@ -1,3 +1,6 @@
+from shuiyuan_cache.export.runtime_defaults import DEFAULT_EXPORT_SAVE_DIR
+
+
 Shuiyuan_Base = "https://shuiyuan.sjtu.edu.cn/"
 Shuiyuan_Topic = Shuiyuan_Base + "t/topic/"
 Shuiyuan_Topic_Json = Shuiyuan_Base + "t/"
@@ -9,7 +12,7 @@ json_limit = 20
 layer_pagination = "\n-------------------------\n"
 code_block_pagination = "```"
 details_end_pagination = "[/details]"
-default_save_dir = "./posts"
+default_save_dir = DEFAULT_EXPORT_SAVE_DIR
 
 # bmp，jpg，png，tif，gif，pcx，tga，exif，fpx，svg，psd，cdr，pcd，dxf，ufo，eps，ai，raw，WMF，webp，avif，apng
 image_extensions = {

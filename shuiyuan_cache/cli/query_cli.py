@@ -5,13 +5,19 @@ from pathlib import Path
 
 from shuiyuan_cache.analysis.post_query import TopicQueryService
 from shuiyuan_cache.core.config import CacheConfig
+from shuiyuan_cache.skill_api.runtime import default_skill_cache_root
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="Query cached Shuiyuan topic posts.")
+    parser = argparse.ArgumentParser(
+        description="Query cached Shuiyuan topic posts.",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
     parser.add_argument("topic", help="Topic id or Shuiyuan topic URL")
     parser.add_argument(
-        "--cache-root", default="cache", help="Local cache root directory"
+        "--cache-root",
+        default=str(default_skill_cache_root()),
+        help="Local cache root directory",
     )
     parser.add_argument("--keyword", help="Keyword to search in cached posts")
     parser.add_argument("--author", help="Filter by username")

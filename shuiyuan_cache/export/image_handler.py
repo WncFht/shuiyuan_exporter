@@ -7,6 +7,10 @@ from urllib.parse import urljoin
 from shuiyuan_cache.core.progress import ProgressCallback
 from shuiyuan_cache.export.cache_bridge import get_export_cache_bridge
 from shuiyuan_cache.export.constants import Shuiyuan_Base, image_extensions
+from shuiyuan_cache.export.runtime_defaults import (
+    DEFAULT_EXPORT_CACHE_ROOT,
+    DEFAULT_EXPORT_COOKIE_PATH,
+)
 
 
 DELETED_IMAGE_PATTERN = re.compile(
@@ -31,8 +35,8 @@ def _has_known_image_ext(name: str) -> bool:
 def _collect_image_rewrites(
     topic: str | int,
     output_image_dir: Path,
-    cache_root: str = "cache",
-    cookie_path: str = "cookies.txt",
+    cache_root: str = DEFAULT_EXPORT_CACHE_ROOT,
+    cookie_path: str = DEFAULT_EXPORT_COOKIE_PATH,
 ) -> tuple[list[str], list[str]]:
     topic_id = _normalize_topic_id(topic)
     cache_bridge = get_export_cache_bridge(
@@ -73,8 +77,8 @@ def img_replace(
     path: str,
     filename: str,
     topic: str,
-    cache_root: str = "cache",
-    cookie_path: str = "cookies.txt",
+    cache_root: str = DEFAULT_EXPORT_CACHE_ROOT,
+    cookie_path: str = DEFAULT_EXPORT_COOKIE_PATH,
     progress_callback: ProgressCallback | None = None,
 ):
     _emit_progress(progress_callback, "图片载入中...")

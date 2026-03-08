@@ -5,15 +5,19 @@ from pathlib import Path
 
 from shuiyuan_cache.analysis.topic_summary import TopicSummaryService
 from shuiyuan_cache.core.config import CacheConfig
+from shuiyuan_cache.skill_api.runtime import default_skill_cache_root
 
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="Summarize cached Shuiyuan topic content."
+        description="Summarize cached Shuiyuan topic content.",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument("topic", help="Topic id or Shuiyuan topic URL")
     parser.add_argument(
-        "--cache-root", default="cache", help="Local cache root directory"
+        "--cache-root",
+        default=str(default_skill_cache_root()),
+        help="Local cache root directory",
     )
     parser.add_argument(
         "--only-op", action="store_true", help="Only summarize the original poster"

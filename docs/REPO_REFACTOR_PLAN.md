@@ -107,11 +107,11 @@ auth -> sync -> query/summary -> export
 
 ### 4.2 应保留但需要按“历史规划稿”理解的文档
 
-- `docs/IMPLEMENTATION_ROADMAP.md`
+- `docs/history/IMPLEMENTATION_ROADMAP.md`
 - `docs/SCHEMA_AND_API.md`
-- `docs/PHASE1_EXECUTION_SPEC.md`
-- `docs/PHASE2_EXECUTION_SPEC.md`
-- `docs/PHASE2_QUERY_ANALYSIS_DESIGN.md`
+- `docs/history/PHASE1_EXECUTION_SPEC.md`
+- `docs/history/PHASE2_EXECUTION_SPEC.md`
+- `docs/history/PHASE2_QUERY_ANALYSIS_DESIGN.md`
 
 这些文档仍然有价值，因为它们记录了设计边界和演进思路；
 但阅读时应优先参考当前实现，不应把其中的规划型 CLI 示例当成现状。

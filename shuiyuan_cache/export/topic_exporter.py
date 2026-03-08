@@ -8,13 +8,17 @@ from shuiyuan_cache.export.constants import default_save_dir
 from shuiyuan_cache.export.export_models import TopicExportResult
 from shuiyuan_cache.export.media_rewrite import MEDIA_REWRITE_STEPS
 from shuiyuan_cache.export.raw_markdown import export_raw_post, normalize_topic_id
+from shuiyuan_cache.export.runtime_defaults import (
+    DEFAULT_EXPORT_CACHE_ROOT,
+    DEFAULT_EXPORT_COOKIE_PATH,
+)
 
 
 def export_topic(
     topic: str | int,
     save_dir: str = default_save_dir,
-    cache_root: str = "cache",
-    cookie_path: str = "cookies.txt",
+    cache_root: str = DEFAULT_EXPORT_CACHE_ROOT,
+    cookie_path: str = DEFAULT_EXPORT_COOKIE_PATH,
     progress_callback: ProgressCallback | None = None,
 ) -> TopicExportResult:
     topic_id = normalize_topic_id(topic)

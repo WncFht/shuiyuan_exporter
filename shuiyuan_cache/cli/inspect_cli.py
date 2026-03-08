@@ -5,13 +5,19 @@ from pathlib import Path
 
 from shuiyuan_cache.analysis.inspect_service import TopicInspectService
 from shuiyuan_cache.core.config import CacheConfig
+from shuiyuan_cache.skill_api.runtime import default_skill_cache_root
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="Inspect cached Shuiyuan topic state.")
+    parser = argparse.ArgumentParser(
+        description="Inspect cached Shuiyuan topic state.",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
     parser.add_argument("topic", help="Topic id or Shuiyuan topic URL")
     parser.add_argument(
-        "--cache-root", default="cache", help="Local cache root directory"
+        "--cache-root",
+        default=str(default_skill_cache_root()),
+        help="Local cache root directory",
     )
     parser.add_argument("--json", action="store_true", help="Output JSON")
     return parser

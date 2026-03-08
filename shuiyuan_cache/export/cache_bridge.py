@@ -11,11 +11,17 @@ from shuiyuan_cache.fetch.session import ShuiyuanSession
 from shuiyuan_cache.fetch.topic_fetcher import TopicFetcher
 from shuiyuan_cache.store.paths import CachePaths
 from shuiyuan_cache.store.raw_store import RawStore
+from shuiyuan_cache.export.runtime_defaults import (
+    DEFAULT_EXPORT_CACHE_ROOT,
+    DEFAULT_EXPORT_COOKIE_PATH,
+)
 
 
 class ExportCacheBridge:
     def __init__(
-        self, cache_root: str | Path = "cache", cookie_path: str | Path = "cookies.txt"
+        self,
+        cache_root: str | Path = DEFAULT_EXPORT_CACHE_ROOT,
+        cookie_path: str | Path = DEFAULT_EXPORT_COOKIE_PATH,
     ):
         self.config = CacheConfig(
             cache_root=Path(cache_root), cookie_path=Path(cookie_path)
@@ -171,6 +177,7 @@ class ExportCacheBridge:
 
 @lru_cache(maxsize=1)
 def get_export_cache_bridge(
-    cache_root: str = "cache", cookie_path: str = "cookies.txt"
+    cache_root: str = DEFAULT_EXPORT_CACHE_ROOT,
+    cookie_path: str = DEFAULT_EXPORT_COOKIE_PATH,
 ) -> ExportCacheBridge:
     return ExportCacheBridge(cache_root=cache_root, cookie_path=cookie_path)

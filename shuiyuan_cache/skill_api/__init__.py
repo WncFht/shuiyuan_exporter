@@ -1,17 +1,11 @@
-from shuiyuan_cache.skill_api.api import ShuiyuanSkillAPI
-from shuiyuan_cache.skill_api.runtime import (
-    build_skill_config,
-    default_skill_cache_root,
-    default_skill_cookie_path,
-    default_skill_export_root,
-    default_skill_runtime_root,
-)
+from __future__ import annotations
 
-__all__ = [
-    "ShuiyuanSkillAPI",
-    "build_skill_config",
-    "default_skill_cache_root",
-    "default_skill_cookie_path",
-    "default_skill_export_root",
-    "default_skill_runtime_root",
-]
+__all__ = ["ShuiyuanSkillAPI"]
+
+
+def __getattr__(name: str):
+    if name == "ShuiyuanSkillAPI":
+        from shuiyuan_cache.skill_api.api import ShuiyuanSkillAPI
+
+        return ShuiyuanSkillAPI
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

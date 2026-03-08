@@ -2,11 +2,11 @@
 
 版本：`v0.1`  
 状态：设计参考稿（当前实现请优先对照 `docs/RUNBOOK.md` 与代码）  
-依赖上位文档：`TECHNICAL_PLAN.md`
+依赖上位文档：`docs/history/TECHNICAL_PLAN.md`
 
 ## 1. 文档目标
 
-这份文档是在 `TECHNICAL_PLAN.md` 基础上的进一步细化，重点回答下面几个“真正开始写代码前必须明确”的问题：
+这份文档是在 `docs/history/TECHNICAL_PLAN.md` 基础上的进一步细化，重点回答下面几个“真正开始写代码前必须明确”的问题：
 
 1. 系统的模块边界怎么拆；
 2. SQLite 和文件缓存具体怎么配合；

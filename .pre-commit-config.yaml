@@ -1,17 +1,17 @@
-exclude: ^(cache/|posts/|\.venv/|__pycache__/)
+exclude: ^(cache/|posts/|exports/|\.venv/|__pycache__/)
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.6.0
     hooks:
       - id: check-ast
-        files: '^(shuiyuan_cache/.*\.py|scripts/.*\.py|main\.py|test\.py)$'
+        files: '^(shuiyuan_cache/.*\.py|scripts/.*\.py|tests/.*\.py|main\.py)$'
       - id: check-added-large-files
         args: ['--maxkb=20480']
       - id: check-merge-conflict
       - id: check-toml
       - id: check-yaml
       - id: debug-statements
-        files: '^(shuiyuan_cache/.*\.py|scripts/.*\.py|main\.py|test\.py)$'
+        files: '^(shuiyuan_cache/.*\.py|scripts/.*\.py|tests/.*\.py|main\.py)$'
       - id: end-of-file-fixer
       - id: trailing-whitespace
         args: [--markdown-linebreak-ext=md]
@@ -21,13 +21,13 @@ repos:
     hooks:
       - id: pyupgrade
         args: [--py312-plus]
-        files: '^(shuiyuan_cache/.*\.py|scripts/.*\.py|main\.py|test\.py)$'
+        files: '^(shuiyuan_cache/.*\.py|scripts/.*\.py|tests/.*\.py|main\.py)$'
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.13.2
     hooks:
       - id: ruff
         args: [--fix]
-        files: '^(shuiyuan_cache/.*\.py|scripts/.*\.py|main\.py|test\.py)$'
+        files: '^(shuiyuan_cache/.*\.py|scripts/.*\.py|tests/.*\.py|main\.py)$'
       - id: ruff-format
-        files: '^(shuiyuan_cache/.*\.py|scripts/.*\.py|main\.py|test\.py)$'
+        files: '^(shuiyuan_cache/.*\.py|scripts/.*\.py|tests/.*\.py|main\.py)$'

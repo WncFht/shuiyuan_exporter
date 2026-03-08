@@ -9,6 +9,10 @@ from bs4 import BeautifulSoup
 from shuiyuan_cache.core.progress import ProgressCallback
 from shuiyuan_cache.export.cache_bridge import get_export_cache_bridge
 from shuiyuan_cache.export.constants import Shuiyuan_Base
+from shuiyuan_cache.export.runtime_defaults import (
+    DEFAULT_EXPORT_CACHE_ROOT,
+    DEFAULT_EXPORT_COOKIE_PATH,
+)
 
 
 AUDIO_RAW_PATTERN = re.compile(
@@ -34,8 +38,8 @@ def _extract_audio_urls(cooked_content: str) -> list[str]:
 
 def _collect_audio_links(
     topic: str | int,
-    cache_root: str = "cache",
-    cookie_path: str = "cookies.txt",
+    cache_root: str = DEFAULT_EXPORT_CACHE_ROOT,
+    cookie_path: str = DEFAULT_EXPORT_COOKIE_PATH,
 ) -> list[tuple[str, str]]:
     topic_id = _normalize_topic_id(topic)
     cache_bridge = get_export_cache_bridge(
@@ -61,8 +65,8 @@ def audio_replace(
     path: str,
     filename: str,
     topic: str,
-    cache_root: str = "cache",
-    cookie_path: str = "cookies.txt",
+    cache_root: str = DEFAULT_EXPORT_CACHE_ROOT,
+    cookie_path: str = DEFAULT_EXPORT_COOKIE_PATH,
     progress_callback: ProgressCallback | None = None,
 ):
     _emit_progress(progress_callback, "文件替换中...")

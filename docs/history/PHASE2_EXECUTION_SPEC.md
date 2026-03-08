@@ -2,7 +2,7 @@
 
 版本：`v0.1`  
 状态：历史执行规格稿（phase2 核心能力已落地，细节请以当前代码为准）  
-依赖文档：`docs/PHASE2_QUERY_ANALYSIS_DESIGN.md`
+依赖文档：`docs/history/PHASE2_QUERY_ANALYSIS_DESIGN.md`
 
 ## 1. 执行目标
 

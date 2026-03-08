@@ -1,7 +1,7 @@
 [project]
 name = "shuiyuan-exporter"
 version = "0.1.0"
-description = "Export SJTU Shuiyuan Forum topics as Markdown documents."
+description = "Export and analyze SJTU Shuiyuan Forum topics with a cache-first workflow."
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
@@ -15,6 +15,7 @@ dependencies = [
 [dependency-groups]
 dev = [
   "pre-commit>=4.2.0",
+  "pytest>=8.3.5",
   "ruff>=0.13.2",
 ]
 
@@ -23,3 +24,6 @@ package = false
 
 [tool.ruff]
 target-version = "py312"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

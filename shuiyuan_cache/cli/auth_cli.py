@@ -5,11 +5,19 @@ from pathlib import Path
 
 from shuiyuan_cache.auth.browser_auth import BrowserAuthManager
 from shuiyuan_cache.core.config import CacheConfig
+from shuiyuan_cache.skill_api.runtime import (
+    default_skill_cache_root,
+    default_skill_cookie_path,
+)
 
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="Manage dedicated browser auth for Shuiyuan."
+        description=(
+            "Manage dedicated browser auth for Shuiyuan. Defaults target the "
+            "external skill runtime under ~/.local/share/shuiyuan-cache-skill/."
+        ),
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     subparsers = parser.add_subparsers(dest="command", required=True)
 
@@ -53,9 +61,15 @@ def build_parser() -> argparse.ArgumentParser:
 
 def _add_common_args(parser: argparse.ArgumentParser) -> None:
     parser.add_argument(
-        "--cache-root", default="cache", help="Local cache root directory"
+        "--cache-root",
+        default=str(default_skill_cache_root()),
+        help="Local cache root directory",
     )
-    parser.add_argument("--cookie-path", default="cookies.txt", help="Cookie file path")
+    parser.add_argument(
+        "--cookie-path",
+        default=str(default_skill_cookie_path()),
+        help="Cookie file path",
+    )
     parser.add_argument(
         "--base-url", default="https://shuiyuan.sjtu.edu.cn", help="Shuiyuan base URL"
     )

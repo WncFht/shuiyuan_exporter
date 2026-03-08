@@ -4,35 +4,55 @@ import importlib
 import os
 import platform
 import re
+from collections.abc import Sequence
 from pathlib import Path
 import pstats
 from pstats import SortKey
-from collections.abc import Sequence
 
 from shuiyuan_cache.export.compat import resolve_auth_cookie_header, set_cookie
 from shuiyuan_cache.export.constants import default_save_dir
 from shuiyuan_cache.export.topic_exporter import export_topic
+from shuiyuan_cache.skill_api.runtime import (
+    default_skill_cache_root,
+    default_skill_cookie_path,
+    default_skill_runtime_root,
+)
 
 
-def export_input(save_dir: str = default_save_dir) -> None:
+def export_input(
+    save_dir: str = default_save_dir,
+    cache_root: str = str(default_skill_cache_root()),
+    cookie_path: str = str(default_skill_cookie_path()),
+) -> None:
     topic = input('请输入帖子编号:(退出请输入"???")\n')
     if topic == "???":
         raise Exception("Exit.")
-    export_topic(topic, save_dir=save_dir)
+    export_topic(
+        topic,
+        save_dir=save_dir,
+        cache_root=cache_root,
+        cookie_path=cookie_path,
+    )
 
 
-def cookie_set() -> bool:
+def cookie_set(
+    cookie_path: str = str(default_skill_cookie_path()),
+    cache_root: str = str(default_skill_cache_root()),
+) -> bool:
     while True:
         cookies = input('请输入cookie:(如果使用上次结果请输入"!!!",退出输入"???")\n')
         if cookies == "???":
             return False
         if cookies == "!!!":
-            cookie_string = resolve_auth_cookie_header()
+            cookie_string = resolve_auth_cookie_header(
+                path=cookie_path,
+                cache_root=cache_root,
+            )
             if cookie_string:
                 return True
             print("您还未设置可用登录态！")
         elif cookies:
-            set_cookie(data=cookies)
+            set_cookie(data=cookies, path=cookie_path)
             print("已同步新cookie到文件")
             return True
 
@@ -41,26 +61,41 @@ def run(
     batch_topic: Sequence[str] | None = None,
     ask_cookie: bool = True,
     save_dir: str = default_save_dir,
+    cache_root: str = str(default_skill_cache_root()),
+    cookie_path: str = str(default_skill_cookie_path()),
 ) -> None:
-    if ask_cookie and not cookie_set():
+    if ask_cookie and not cookie_set(cookie_path=cookie_path, cache_root=cache_root):
         return
     if batch_topic:
         for topic in batch_topic:
             try:
-                export_topic(topic=topic, save_dir=save_dir)
+                export_topic(
+                    topic=topic,
+                    save_dir=save_dir,
+                    cache_root=cache_root,
+                    cookie_path=cookie_path,
+                )
             except Exception as exc:
                 print(exc)
         return
 
     while True:
         try:
-            export_input(save_dir=save_dir)
+            export_input(
+                save_dir=save_dir,
+                cache_root=cache_root,
+                cookie_path=cookie_path,
+            )
         except Exception as exc:
             print(exc)
             break
 
 
 def clean(directory: Path = Path(default_save_dir)) -> None:
+    if not directory.exists():
+        print(f"目录不存在: {directory}")
+        return
+
     def clean_helper(item: Path) -> None:
         if item.is_dir() and re.match(r"\d+", item.name):
             print(f"目录: {item}")
@@ -78,10 +113,10 @@ def clean(directory: Path = Path(default_save_dir)) -> None:
 
 
 def stat(program: str) -> None:
-    stat_dir = Path("./stat")
-    stat_dir.mkdir(exist_ok=True)
-    cProfile.run(program, "./stat/run_stats.txt")
-    stats = pstats.Stats("./stat/run_stats.txt")
+    stat_dir = default_skill_runtime_root() / "stat"
+    stat_dir.mkdir(parents=True, exist_ok=True)
+    cProfile.run(program, str(stat_dir / "run_stats.txt"))
+    stats = pstats.Stats(str(stat_dir / "run_stats.txt"))
     stats.strip_dirs().sort_stats(SortKey.TIME).print_stats(10)
 
 
@@ -121,7 +156,11 @@ def choose_list() -> tuple[str, list]:
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="The script is created to export posts on Shuiyuan Forum as markdown documents."
+        description=(
+            "Legacy interactive export CLI. Prefer scripts/export_topic.py or "
+            "scripts/ensure_cached.py for the current cache-first workflow."
+        ),
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument(
         "-b",
@@ -134,7 +173,7 @@ def build_parser() -> argparse.ArgumentParser:
         "-c",
         "--clean",
         action="store_true",
-        help="clean the posts folder for possible meaningless md",
+        help="clean the export folder for possible meaningless md",
     )
     parser.add_argument(
         "-n",
@@ -152,7 +191,22 @@ def build_parser() -> argparse.ArgumentParser:
         "-l",
         "--list",
         action="store_true",
-        help="list the available quality list and pull one in batch mode.)",
+        help="list the available quality list and pull one in batch mode.",
+    )
+    parser.add_argument(
+        "--save-dir",
+        default=default_save_dir,
+        help="Legacy export output root",
+    )
+    parser.add_argument(
+        "--cache-root",
+        default=str(default_skill_cache_root()),
+        help="Cache root used by the export bridge",
+    )
+    parser.add_argument(
+        "--cookie-path",
+        default=str(default_skill_cookie_path()),
+        help="Cookie file path used as auth fallback",
     )
     return parser
 
@@ -163,17 +217,33 @@ def main(argv=None) -> int:
     ask = not args.not_ask_cookie
     if args.list:
         name, selected_list = choose_list()
-        save_dir = f"{default_save_dir}/{name}"
+        save_dir = f"{args.save_dir}/{name}"
         os.makedirs(save_dir, exist_ok=True)
-        run(selected_list, ask_cookie=ask, save_dir=save_dir)
+        run(
+            selected_list,
+            ask_cookie=ask,
+            save_dir=save_dir,
+            cache_root=args.cache_root,
+            cookie_path=args.cookie_path,
+        )
         return 0
     if args.batch:
-        print(args.batch)
-        run(args.batch, ask_cookie=ask)
+        run(
+            args.batch,
+            ask_cookie=ask,
+            save_dir=args.save_dir,
+            cache_root=args.cache_root,
+            cookie_path=args.cookie_path,
+        )
     elif args.clean:
-        clean()
+        clean(Path(args.save_dir))
     elif args.stat:
         stat("run(['276006'], False)")
     else:
-        run(ask_cookie=ask)
+        run(
+            ask_cookie=ask,
+            save_dir=args.save_dir,
+            cache_root=args.cache_root,
+            cookie_path=args.cookie_path,
+        )
     return 0

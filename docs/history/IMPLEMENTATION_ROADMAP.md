@@ -2,7 +2,7 @@
 
 版本：`v0.1`  
 状态：历史规划稿（已部分实现，当前运行方式请优先参考 `docs/RUNBOOK.md`）  
-依赖文档：`TECHNICAL_PLAN.md`、`docs/SYSTEM_DESIGN.md`
+依赖文档：`docs/history/TECHNICAL_PLAN.md`、`docs/SYSTEM_DESIGN.md`
 
 ## 1. 文档目标
 
@@ -36,7 +36,7 @@
 
 目标：
 
-- 评审并确认 `TECHNICAL_PLAN.md`
+- 评审并确认 `docs/history/TECHNICAL_PLAN.md`
 - 评审并确认 `docs/SYSTEM_DESIGN.md`
 - 决定缓存结构、数据库、图片策略、MVP 范围
 

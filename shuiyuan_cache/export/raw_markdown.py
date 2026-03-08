@@ -4,6 +4,10 @@ from pathlib import Path
 from shuiyuan_cache.export.cache_bridge import get_export_cache_bridge
 from shuiyuan_cache.export.compat import code_block_fix, quote_in_shuiyuan
 from shuiyuan_cache.fetch.topic_fetcher import TopicFetcher
+from shuiyuan_cache.export.runtime_defaults import (
+    DEFAULT_EXPORT_CACHE_ROOT,
+    DEFAULT_EXPORT_COOKIE_PATH,
+)
 
 
 def normalize_topic_id(topic: str | int) -> str:
@@ -19,8 +23,8 @@ def build_markdown_filename(topic_id: str, title: str) -> str:
 def export_raw_post(
     output_dir: str | Path,
     topic: str | int,
-    cache_root: str = "cache",
-    cookie_path: str = "cookies.txt",
+    cache_root: str = DEFAULT_EXPORT_CACHE_ROOT,
+    cookie_path: str = DEFAULT_EXPORT_COOKIE_PATH,
 ) -> str:
     output_dir = Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
