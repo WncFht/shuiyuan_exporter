@@ -156,14 +156,42 @@ uv run python main.py
 
 它们主要用于兼容旧习惯，不是当前推荐主路径。
 
-## 10. 校验命令
+## 10. 迁移 repo 内旧运行时
+
+如果你之前把 `cache/`、`cookies.txt` 之类的运行时数据直接放在 repo 根目录，可以先跑 dry-run：
+
+```bash
+uv run python scripts/migrate_runtime.py
+```
+
+它会输出一个 JSON 报告，告诉你：
+
+- repo 内有哪些 topic 只存在于旧缓存
+- 外部 runtime 里有哪些 topic 只存在于当前缓存
+- 哪些认证文件 / 图片 / sqlite topic 数据可以安全补迁移
+- 哪些项目需要人工确认
+
+如果 dry-run 没问题，再执行安全 apply：
+
+```bash
+uv run python scripts/migrate_runtime.py --apply
+```
+
+当前 apply 策略是保守的：
+
+- 只复制 runtime 里缺失的认证文件、目录和缓存文件
+- 只把 repo-only 的 topic 数据补合并到 runtime sqlite
+- 不会覆盖 runtime 已存在的认证或缓存
+- 不会自动删除 repo 内旧运行时目录
+
+## 11. 校验命令
 
 ```bash
 uv run pre-commit run --all-files
 uv run pytest
 ```
 
-## 11. 进一步阅读
+## 12. 进一步阅读
 
 - `docs/README.md`
 - `docs/SKILL_DESIGN.md`
