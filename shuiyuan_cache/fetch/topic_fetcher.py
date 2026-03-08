@@ -15,7 +15,8 @@ class TopicFetcher:
         self.config = config
         self.session = session
 
-    def resolve_topic_id(self, topic: str | int) -> int:
+    @staticmethod
+    def resolve_topic_id(topic: str | int) -> int:
         if isinstance(topic, int):
             return topic
         topic_text = str(topic).strip()

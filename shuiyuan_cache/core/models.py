@@ -111,3 +111,62 @@ class SyncResult:
     skipped_images: int
     status: str
     errors: list[str] = field(default_factory=list)
+
+
+@dataclass(slots=True)
+class TopicInspectResult:
+    topic_id: int
+    title: Optional[str]
+    topic_posts_count: int
+    db_post_count: int
+    json_page_count: int
+    raw_page_count: int
+    media_image_count: int
+    image_file_count: int
+    last_posted_at: Optional[str]
+    last_sync_status: Optional[str]
+    last_sync_mode: Optional[str]
+    last_sync_finished_at: Optional[str]
+    cache_path: str
+    issues: list[str] = field(default_factory=list)
+
+    def to_dict(self) -> dict:
+        return asdict(self)
+
+
+@dataclass(slots=True)
+class QueryPostItem:
+    post_id: int
+    post_number: int
+    username: Optional[str]
+    created_at: Optional[str]
+    plain_text: Optional[str]
+    image_paths: list[str] = field(default_factory=list)
+    image_count: int = 0
+    score: Optional[float] = None
+
+
+@dataclass(slots=True)
+class QueryResult:
+    topic_id: int
+    total_hits: int
+    items: list[QueryPostItem] = field(default_factory=list)
+
+    def to_dict(self) -> dict:
+        return asdict(self)
+
+
+@dataclass(slots=True)
+class TopicSummary:
+    topic_id: int
+    title: str
+    summary_text: str
+    time_range: str
+    post_count_in_scope: int
+    top_authors: list[tuple[str, int]] = field(default_factory=list)
+    top_keywords: list[tuple[str, int]] = field(default_factory=list)
+    key_posts: list[int] = field(default_factory=list)
+    image_post_numbers: list[int] = field(default_factory=list)
+
+    def to_dict(self) -> dict:
+        return asdict(self)

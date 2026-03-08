@@ -108,10 +108,23 @@ CREATE VIRTUAL TABLE IF NOT EXISTS posts_fts USING fts5(
   plain_text,
   raw_markdown
 );
+
+CREATE INDEX IF NOT EXISTS idx_posts_topic_post_number ON posts(topic_id, post_number);
+CREATE INDEX IF NOT EXISTS idx_posts_topic_username ON posts(topic_id, username);
+CREATE INDEX IF NOT EXISTS idx_posts_topic_created_at ON posts(topic_id, created_at);
+CREATE INDEX IF NOT EXISTS idx_posts_topic_has_images ON posts(topic_id, has_images);
+CREATE INDEX IF NOT EXISTS idx_media_topic_post_type ON media(topic_id, post_number, media_type);
 """
 
 
 class SQLiteStore:
+    DOWNLOAD_STATUS_PRIORITY = {
+        "pending": 0,
+        "failed": 1,
+        "skipped": 2,
+        "downloaded": 3,
+    }
+
     def __init__(self, db_path: Path):
         self.db_path = db_path
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
@@ -279,54 +292,193 @@ class SQLiteStore:
         media_records = list(media_records)
         if not media_records:
             return 0, 0
+
         inserted = 0
         updated = 0
         now_ts = int(time.time())
         for media in media_records:
-            row = self.conn.execute(
-                "SELECT media_id FROM media WHERE topic_id = ? AND post_number = ? AND media_type = ? AND upload_ref IS ?",
-                (media.topic_id, media.post_number, media.media_type, media.upload_ref),
-            ).fetchone()
+            candidates = self._find_media_candidates(media)
+            if not candidates:
+                self.conn.execute(
+                    """
+                    INSERT INTO media (
+                      topic_id, post_id, post_number, media_type, upload_ref, resolved_url,
+                      local_path, mime_type, file_ext, media_key, download_status, content_length,
+                      created_ts, updated_ts
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    (
+                        media.topic_id,
+                        media.post_id,
+                        media.post_number,
+                        media.media_type,
+                        media.upload_ref,
+                        media.resolved_url,
+                        media.local_path,
+                        media.mime_type,
+                        media.file_ext,
+                        media.media_key,
+                        media.download_status,
+                        media.content_length,
+                        now_ts,
+                        now_ts,
+                    ),
+                )
+                inserted += 1
+                continue
+
+            keeper = self._choose_media_keeper(candidates, media)
+            merged_existing = self._merge_media_candidates(candidates)
+            payload = self._merge_media_record(merged_existing, media, now_ts)
+            duplicate_ids = [row["media_id"] for row in candidates if row["media_id"] != keeper["media_id"]]
+            if duplicate_ids:
+                placeholders = ",".join(["?"] * len(duplicate_ids))
+                self.conn.execute(f"DELETE FROM media WHERE media_id IN ({placeholders})", duplicate_ids)
             self.conn.execute(
                 """
-                INSERT INTO media (
-                  topic_id, post_id, post_number, media_type, upload_ref, resolved_url,
-                  local_path, mime_type, file_ext, media_key, download_status, content_length,
-                  created_ts, updated_ts
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                ON CONFLICT(topic_id, post_number, media_type, upload_ref) DO UPDATE SET
-                  resolved_url=excluded.resolved_url,
-                  local_path=excluded.local_path,
-                  mime_type=excluded.mime_type,
-                  file_ext=excluded.file_ext,
-                  media_key=excluded.media_key,
-                  download_status=excluded.download_status,
-                  content_length=excluded.content_length,
-                  updated_ts=excluded.updated_ts
+                UPDATE media
+                SET post_id = ?,
+                    post_number = ?,
+                    media_type = ?,
+                    upload_ref = ?,
+                    resolved_url = ?,
+                    local_path = ?,
+                    mime_type = ?,
+                    file_ext = ?,
+                    media_key = ?,
+                    download_status = ?,
+                    content_length = ?,
+                    updated_ts = ?
+                WHERE media_id = ?
                 """,
                 (
-                    media.topic_id,
-                    media.post_id,
-                    media.post_number,
-                    media.media_type,
-                    media.upload_ref,
-                    media.resolved_url,
-                    media.local_path,
-                    media.mime_type,
-                    media.file_ext,
-                    media.media_key,
-                    media.download_status,
-                    media.content_length,
+                    payload["post_id"],
+                    payload["post_number"],
+                    payload["media_type"],
+                    payload["upload_ref"],
+                    payload["resolved_url"],
+                    payload["local_path"],
+                    payload["mime_type"],
+                    payload["file_ext"],
+                    payload["media_key"],
+                    payload["download_status"],
+                    payload["content_length"],
                     now_ts,
-                    now_ts,
+                    keeper["media_id"],
                 ),
             )
-            if row is None:
-                inserted += 1
-            else:
-                updated += 1
+            updated += 1
+
         self.conn.commit()
         return inserted, updated
+
+    def _find_media_candidates(self, media: MediaRecord) -> list[sqlite3.Row]:
+        clauses = ["topic_id = ?", "media_type = ?"]
+        params: list = [media.topic_id, media.media_type]
+        if media.post_number is None:
+            clauses.append("post_number IS NULL")
+        else:
+            clauses.append("post_number = ?")
+            params.append(media.post_number)
+
+        identity_clauses: list[str] = []
+        identity_params: list = []
+        if media.upload_ref:
+            identity_clauses.append("upload_ref = ?")
+            identity_params.append(media.upload_ref)
+        if media.media_key:
+            identity_clauses.append("media_key = ?")
+            identity_params.append(media.media_key)
+        if media.resolved_url:
+            identity_clauses.append("resolved_url = ?")
+            identity_params.append(media.resolved_url)
+
+        if not identity_clauses:
+            return []
+
+        sql = f"""
+            SELECT *
+            FROM media
+            WHERE {' AND '.join(clauses)}
+              AND ({' OR '.join(identity_clauses)})
+            ORDER BY media_id ASC
+        """
+        return self.conn.execute(sql, [*params, *identity_params]).fetchall()
+
+    def _choose_media_keeper(self, rows: list[sqlite3.Row], media: MediaRecord) -> sqlite3.Row:
+        if media.upload_ref:
+            for row in rows:
+                if row["upload_ref"] == media.upload_ref:
+                    return row
+        return max(
+            rows,
+            key=lambda row: (
+                1 if row["local_path"] else 0,
+                self._download_status_priority(row["download_status"]),
+                1 if row["content_length"] else 0,
+                -(row["media_id"] or 0),
+            ),
+        )
+
+    def _merge_media_candidates(self, rows: list[sqlite3.Row]) -> dict:
+        merged = dict(rows[0])
+        for row in rows[1:]:
+            merged["post_id"] = merged["post_id"] if merged["post_id"] is not None else row["post_id"]
+            merged["post_number"] = merged["post_number"] if merged["post_number"] is not None else row["post_number"]
+            merged["upload_ref"] = merged["upload_ref"] or row["upload_ref"]
+            merged["resolved_url"] = merged["resolved_url"] or row["resolved_url"]
+            merged["local_path"] = merged["local_path"] or row["local_path"]
+            merged["mime_type"] = merged["mime_type"] or row["mime_type"]
+            merged["file_ext"] = merged["file_ext"] or row["file_ext"]
+            merged["media_key"] = merged["media_key"] or row["media_key"]
+            merged["download_status"] = self._choose_download_status(merged["download_status"], row["download_status"])
+            if merged["content_length"] is None:
+                merged["content_length"] = row["content_length"]
+            if row["created_ts"] is not None:
+                if merged["created_ts"] is None:
+                    merged["created_ts"] = row["created_ts"]
+                else:
+                    merged["created_ts"] = min(merged["created_ts"], row["created_ts"])
+            if row["updated_ts"] is not None:
+                if merged["updated_ts"] is None:
+                    merged["updated_ts"] = row["updated_ts"]
+                else:
+                    merged["updated_ts"] = max(merged["updated_ts"], row["updated_ts"])
+        return merged
+
+    def _merge_media_record(self, existing: dict, media: MediaRecord, now_ts: int) -> dict:
+        existing_download_status = existing.get("download_status")
+        incoming_download_status = media.download_status or existing_download_status or "pending"
+        merged_download_status = self._choose_download_status(existing_download_status, incoming_download_status)
+        return {
+            "post_id": media.post_id if media.post_id is not None else existing.get("post_id"),
+            "post_number": media.post_number if media.post_number is not None else existing.get("post_number"),
+            "media_type": media.media_type or existing.get("media_type"),
+            "upload_ref": media.upload_ref or existing.get("upload_ref"),
+            "resolved_url": media.resolved_url or existing.get("resolved_url"),
+            "local_path": media.local_path or existing.get("local_path"),
+            "mime_type": media.mime_type or existing.get("mime_type"),
+            "file_ext": media.file_ext or existing.get("file_ext"),
+            "media_key": media.media_key or existing.get("media_key"),
+            "download_status": merged_download_status,
+            "content_length": media.content_length if media.content_length is not None else existing.get("content_length"),
+            "created_ts": existing.get("created_ts") if existing.get("created_ts") is not None else now_ts,
+            "updated_ts": now_ts,
+        }
+
+    def _choose_download_status(self, current: Optional[str], incoming: Optional[str]) -> str:
+        if not current:
+            return incoming or "pending"
+        if not incoming:
+            return current
+        if self._download_status_priority(incoming) >= self._download_status_priority(current):
+            return incoming
+        return current
+
+    def _download_status_priority(self, status: Optional[str]) -> int:
+        if status is None:
+            return -1
+        return self.DOWNLOAD_STATUS_PRIORITY.get(status, 0)
 
     def upsert_sync_state(self, state: SyncStateRecord) -> None:
         now_ts = int(time.time())
