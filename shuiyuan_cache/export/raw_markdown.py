@@ -3,11 +3,11 @@ from pathlib import Path
 
 from shuiyuan_cache.export.cache_bridge import get_export_cache_bridge
 from shuiyuan_cache.export.compat import code_block_fix, quote_in_shuiyuan
+from shuiyuan_cache.fetch.topic_fetcher import TopicFetcher
 
 
 def normalize_topic_id(topic: str | int) -> str:
-    topic_text = str(topic)
-    return topic_text[1:] if topic_text.startswith("L") else topic_text
+    return str(TopicFetcher.resolve_topic_id(topic))
 
 
 def build_markdown_filename(topic_id: str, title: str) -> str:
