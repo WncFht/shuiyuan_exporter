@@ -22,6 +22,12 @@ Prefer this order:
 - Override runtime paths with `SHUIYUAN_CACHE_ROOT`, `SHUIYUAN_COOKIE_PATH`, or CLI flags.
 - The repo itself should stay code-only; cache, auth state, and exports live outside the repo.
 
+## Machine output
+
+- `scripts/*.py` keeps `stdout` reserved for JSON payloads.
+- Progress and stage logs are written to `stderr`.
+- This makes the skill safe for machine consumption while still keeping human-readable progress.
+
 ## Auth
 
 If a sync request fails because auth is missing or expired, use the same runtime paths with `auth_cli`:
@@ -29,6 +35,16 @@ If a sync request fails because auth is missing or expired, use the same runtime
 ```bash
 uv run python -m shuiyuan_cache.cli.auth_cli setup --cache-root "$HOME/.local/share/shuiyuan-cache-skill/cache" --cookie-path "$HOME/.local/share/shuiyuan-cache-skill/cookies.txt"
 ```
+
+## Chezmoi sync
+
+Recommended split:
+
+- Sync code and skill metadata with git / `chezmoi`.
+- Do not sync runtime data under `~/.local/share/shuiyuan-cache-skill/`.
+- Do not sync `cookies.txt`, `cache/auth/auth.json`, or `cache/auth/browser_profile/` unless you intentionally accept credential replication risk.
+
+If you keep this repo elsewhere and expose it to Codex with a symlink, let `chezmoi` manage the symlink under `~/.codex/skills/` rather than the runtime cache.
 
 ## Scripts
 

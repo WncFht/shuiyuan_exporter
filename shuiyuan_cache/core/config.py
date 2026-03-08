@@ -9,8 +9,12 @@ class CacheConfig:
     base_url: str = "https://shuiyuan.sjtu.edu.cn"
     user_agent: str = "Mozilla/5.0"
     request_timeout: int = 30
+    request_interval_seconds: float = 0.35
     retry_connect: int = 3
     backoff_factor: float = 0.5
+    rate_limit_retry_attempts: int = 6
+    rate_limit_cooldown_seconds: float = 5.0
+    rate_limit_max_cooldown_seconds: float = 30.0
     raw_page_size: int = 100
     json_page_size: int = 20
     tail_refresh_pages: int = 2

@@ -1,11 +1,14 @@
 from __future__ import annotations
 
 from concurrent.futures import ThreadPoolExecutor
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from threading import local
+from typing import Any
 
 from shuiyuan_cache.core.config import CacheConfig
 from shuiyuan_cache.core.models import SyncPlan, SyncResult, SyncStateRecord
+from shuiyuan_cache.core.exceptions import RateLimitError
 from shuiyuan_cache.core.progress import ProgressCallback
 from shuiyuan_cache.fetch.session import ShuiyuanSession
 from shuiyuan_cache.fetch.sync_planner import SyncPlanner
@@ -16,6 +19,14 @@ from shuiyuan_cache.store.media_store import MediaStore
 from shuiyuan_cache.store.paths import CachePaths
 from shuiyuan_cache.store.raw_store import RawStore
 from shuiyuan_cache.store.sqlite_store import SQLiteStore
+
+
+@dataclass(slots=True)
+class _PageFetchResult:
+    page_no: int
+    payload: Any | None
+    error: str | None = None
+    rate_limited: bool = False
 
 
 class TopicSyncService:
@@ -91,7 +102,11 @@ class TopicSyncService:
                 f"json fetch stage: pages={json_total}, workers={self._page_fetch_workers(json_total)}",
             )
         for index, (page_no, page_payload, page_error) in enumerate(
-            self._iter_json_page_payloads(topic_id, plan.json_pages_to_fetch),
+            self._iter_json_page_payloads(
+                topic_id,
+                plan.json_pages_to_fetch,
+                progress_callback=progress_callback,
+            ),
             start=1,
         ):
             self._emit_progress(
@@ -161,7 +176,11 @@ class TopicSyncService:
                 f"raw fetch stage: pages={raw_total}, workers={self._page_fetch_workers(raw_total)}",
             )
         for index, (page_no, raw_text, page_error) in enumerate(
-            self._iter_raw_page_payloads(topic_id, plan.raw_pages_to_fetch),
+            self._iter_raw_page_payloads(
+                topic_id,
+                plan.raw_pages_to_fetch,
+                progress_callback=progress_callback,
+            ),
             start=1,
         ):
             if page_error:
@@ -236,61 +255,136 @@ class TopicSyncService:
         self,
         topic_id: int,
         page_numbers: list[int],
+        progress_callback: ProgressCallback | None = None,
     ):
         if not page_numbers:
             return
+
+        retry_page_numbers: list[int] = []
         max_workers = self._page_fetch_workers(len(page_numbers))
         if max_workers == 1:
-            for page_no in page_numbers:
-                yield self._fetch_json_page_task(topic_id, page_no)
-            return
-        with ThreadPoolExecutor(max_workers=max_workers) as executor:
-            yield from executor.map(
-                lambda page_no: self._fetch_json_page_task(topic_id, page_no),
-                page_numbers,
+            iterator = (
+                self._fetch_json_page_task(topic_id, page_no)
+                for page_no in page_numbers
             )
+            for result in iterator:
+                if result.rate_limited:
+                    retry_page_numbers.append(result.page_no)
+                    self._emit_progress(
+                        progress_callback,
+                        f"json page {result.page_no}: rate limited; scheduling sequential retry",
+                    )
+                    continue
+                yield result.page_no, result.payload, result.error
+        else:
+            with ThreadPoolExecutor(max_workers=max_workers) as executor:
+                for result in executor.map(
+                    lambda page_no: self._fetch_json_page_task(topic_id, page_no),
+                    page_numbers,
+                ):
+                    if result.rate_limited:
+                        retry_page_numbers.append(result.page_no)
+                        self._emit_progress(
+                            progress_callback,
+                            f"json page {result.page_no}: rate limited; scheduling sequential retry",
+                        )
+                        continue
+                    yield result.page_no, result.payload, result.error
+
+        if retry_page_numbers:
+            self._emit_progress(
+                progress_callback,
+                f"json cooldown retry stage: pages={len(retry_page_numbers)}, workers=1",
+            )
+            for page_no in retry_page_numbers:
+                result = self._fetch_json_page_task(topic_id, page_no)
+                yield result.page_no, result.payload, result.error
 
     def _iter_raw_page_payloads(
         self,
         topic_id: int,
         page_numbers: list[int],
+        progress_callback: ProgressCallback | None = None,
     ):
         if not page_numbers:
             return
+
+        retry_page_numbers: list[int] = []
         max_workers = self._page_fetch_workers(len(page_numbers))
         if max_workers == 1:
-            for page_no in page_numbers:
-                yield self._fetch_raw_page_task(topic_id, page_no)
-            return
-        with ThreadPoolExecutor(max_workers=max_workers) as executor:
-            yield from executor.map(
-                lambda page_no: self._fetch_raw_page_task(topic_id, page_no),
-                page_numbers,
+            iterator = (
+                self._fetch_raw_page_task(topic_id, page_no) for page_no in page_numbers
             )
+            for result in iterator:
+                if result.rate_limited:
+                    retry_page_numbers.append(result.page_no)
+                    self._emit_progress(
+                        progress_callback,
+                        f"raw page {result.page_no}: rate limited; scheduling sequential retry",
+                    )
+                    continue
+                yield result.page_no, result.payload, result.error
+        else:
+            with ThreadPoolExecutor(max_workers=max_workers) as executor:
+                for result in executor.map(
+                    lambda page_no: self._fetch_raw_page_task(topic_id, page_no),
+                    page_numbers,
+                ):
+                    if result.rate_limited:
+                        retry_page_numbers.append(result.page_no)
+                        self._emit_progress(
+                            progress_callback,
+                            f"raw page {result.page_no}: rate limited; scheduling sequential retry",
+                        )
+                        continue
+                    yield result.page_no, result.payload, result.error
+
+        if retry_page_numbers:
+            self._emit_progress(
+                progress_callback,
+                f"raw cooldown retry stage: pages={len(retry_page_numbers)}, workers=1",
+            )
+            for page_no in retry_page_numbers:
+                result = self._fetch_raw_page_task(topic_id, page_no)
+                yield result.page_no, result.payload, result.error
 
     def _fetch_json_page_task(
         self,
         topic_id: int,
         page_no: int,
-    ) -> tuple[int, dict | None, str | None]:
+    ) -> _PageFetchResult:
         try:
             payload = self._get_worker_fetcher().fetch_topic_json_page(
                 topic_id, page_no
             )
-            return page_no, payload, None
+            return _PageFetchResult(page_no=page_no, payload=payload)
+        except RateLimitError as exc:
+            return _PageFetchResult(
+                page_no=page_no,
+                payload=None,
+                error=str(exc),
+                rate_limited=True,
+            )
         except Exception as exc:
-            return page_no, None, str(exc)
+            return _PageFetchResult(page_no=page_no, payload=None, error=str(exc))
 
     def _fetch_raw_page_task(
         self,
         topic_id: int,
         page_no: int,
-    ) -> tuple[int, str | None, str | None]:
+    ) -> _PageFetchResult:
         try:
             payload = self._get_worker_fetcher().fetch_topic_raw_page(topic_id, page_no)
-            return page_no, payload, None
+            return _PageFetchResult(page_no=page_no, payload=payload)
+        except RateLimitError as exc:
+            return _PageFetchResult(
+                page_no=page_no,
+                payload=None,
+                error=str(exc),
+                rate_limited=True,
+            )
         except Exception as exc:
-            return page_no, None, str(exc)
+            return _PageFetchResult(page_no=page_no, payload=None, error=str(exc))
 
     def _get_worker_fetcher(self) -> TopicFetcher:
         worker_fetcher = getattr(self._worker_local, "fetcher", None)

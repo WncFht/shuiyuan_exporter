@@ -1,6 +1,9 @@
+from __future__ import annotations
+
 import time
 from pathlib import Path
 
+from shuiyuan_cache.core.progress import ProgressCallback
 from shuiyuan_cache.export.constants import default_save_dir
 from shuiyuan_cache.export.export_models import TopicExportResult
 from shuiyuan_cache.export.media_rewrite import MEDIA_REWRITE_STEPS
@@ -12,9 +15,10 @@ def export_topic(
     save_dir: str = default_save_dir,
     cache_root: str = "cache",
     cookie_path: str = "cookies.txt",
+    progress_callback: ProgressCallback | None = None,
 ) -> TopicExportResult:
     topic_id = normalize_topic_id(topic)
-    print(f"topic:{topic_id} 文字备份中...")
+    _emit_progress(progress_callback, f"topic:{topic_id} 文字备份中...")
 
     topic_dir = Path(save_dir) / topic_id
     topic_dir.mkdir(parents=True, exist_ok=True)
@@ -28,7 +32,7 @@ def export_topic(
         cookie_path=cookie_path,
     )
     raw_seconds = time.time() - stage_started_at
-    print(f"文字爬取耗时: {raw_seconds} 秒")
+    _emit_progress(progress_callback, f"文字爬取耗时: {raw_seconds} 秒")
 
     timings = {
         "image_seconds": 0.0,
@@ -44,14 +48,17 @@ def export_topic(
             topic=topic_id,
             cache_root=cache_root,
             cookie_path=cookie_path,
+            progress_callback=progress_callback,
         )
         elapsed = time.time() - stage_started_at
         timings[key] = elapsed
-        print(f"{label}: {elapsed} 秒")
+        _emit_progress(progress_callback, f"{label}: {elapsed} 秒")
 
     total_seconds = time.time() - total_started_at
-    print(f"编号为 #{topic_id} 的帖子已备份为本地文件：{filename}\n")
-    print("Exit.")
+    _emit_progress(
+        progress_callback, f"编号为 #{topic_id} 的帖子已备份为本地文件：{filename}"
+    )
+    _emit_progress(progress_callback, "Exit.")
     return TopicExportResult(
         topic_id=topic_id,
         filename=filename,
@@ -63,3 +70,11 @@ def export_topic(
         audio_seconds=timings["audio_seconds"],
         total_seconds=total_seconds,
     )
+
+
+def _emit_progress(
+    progress_callback: ProgressCallback | None,
+    message: str,
+) -> None:
+    if progress_callback is not None:
+        progress_callback(message)

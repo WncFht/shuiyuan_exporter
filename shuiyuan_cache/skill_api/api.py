@@ -274,6 +274,7 @@ class ShuiyuanSkillAPI:
             save_dir=str(resolved_save_dir),
             cache_root=str(self.config.cache_root),
             cookie_path=str(self.config.cookie_path),
+            progress_callback=progress_callback,
         )
         payload = asdict(result)
         payload["save_dir"] = str(resolved_save_dir)

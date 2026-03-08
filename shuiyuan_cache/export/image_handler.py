@@ -1,7 +1,10 @@
+from __future__ import annotations
+
 import re
 from pathlib import Path
 from urllib.parse import urljoin
 
+from shuiyuan_cache.core.progress import ProgressCallback
 from shuiyuan_cache.export.cache_bridge import get_export_cache_bridge
 from shuiyuan_cache.export.constants import Shuiyuan_Base, image_extensions
 
@@ -72,8 +75,9 @@ def img_replace(
     topic: str,
     cache_root: str = "cache",
     cookie_path: str = "cookies.txt",
+    progress_callback: ProgressCallback | None = None,
 ):
-    print("图片载入中...")
+    _emit_progress(progress_callback, "图片载入中...")
     file_path = Path(path) / filename
     md_content = file_path.read_text(encoding="utf-8")
 
@@ -108,3 +112,11 @@ def img_replace(
 
     md_content = UPLOAD_IMAGE_PATTERN.sub(replace, md_content)
     file_path.write_text(md_content, encoding="utf-8")
+
+
+def _emit_progress(
+    progress_callback: ProgressCallback | None,
+    message: str,
+) -> None:
+    if progress_callback is not None:
+        progress_callback(message)
