@@ -29,10 +29,10 @@ class ShuiyuanSession:
         self.session.headers.update(headers)
 
     def resolve_cookie_header(self) -> str:
-        cookie_text = self.read_cookie(self.config.cookie_path)
-        if cookie_text:
-            return cookie_text
-        return build_cookie_header_from_storage_state(self.config.storage_state_path, self.config.base_url)
+        storage_cookie_text = build_cookie_header_from_storage_state(self.config.storage_state_path, self.config.base_url)
+        if storage_cookie_text:
+            return storage_cookie_text
+        return self.read_cookie(self.config.cookie_path)
 
     @staticmethod
     def read_cookie(path: Path) -> str:

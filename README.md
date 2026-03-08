@@ -120,7 +120,7 @@ uv run python -m shuiyuan_cache.cli.auth_cli refresh
 uv run python -m shuiyuan_cache.cli.auth_cli setup --browser chromium
 ```
 
-- `sync_cli` 现在会优先读取 `cookies.txt`，如果没有，则会自动回退读取 `cache/auth/auth.json` 中保存的 Cookie
+- `sync_cli` 现在会优先读取 `cache/auth/auth.json` 中保存的 Cookie；只有没有可用登录态时，才回退到 `cookies.txt`
 
 ## 快速开始
 
