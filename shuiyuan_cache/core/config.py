@@ -22,12 +22,12 @@ class CacheConfig:
 
     @property
     def auth_root(self) -> Path:
-        return self.cache_root / 'auth'
+        return self.cache_root / "auth"
 
     @property
     def storage_state_path(self) -> Path:
-        return self.auth_root / 'auth.json'
+        return self.auth_root / "auth.json"
 
     @property
     def browser_profile_dir(self) -> Path:
-        return self.auth_root / 'browser_profile'
+        return self.auth_root / "browser_profile"

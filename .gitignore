@@ -4,3 +4,5 @@ cookies.txt
 posts/
 .venv/
 cache/
+.ruff_cache/
+stat/

@@ -7,13 +7,23 @@ from shuiyuan_cache.sync.topic_sync import TopicSyncService
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="Sync Shuiyuan topics into local cache.")
+    parser = argparse.ArgumentParser(
+        description="Sync Shuiyuan topics into local cache."
+    )
     parser.add_argument("topic", help="Topic id or Shuiyuan topic URL")
-    parser.add_argument("--mode", choices=["full", "incremental", "refresh-tail"], default="incremental")
-    parser.add_argument("--cache-root", default="cache", help="Local cache root directory")
+    parser.add_argument(
+        "--mode", choices=["full", "incremental", "refresh-tail"], default="incremental"
+    )
+    parser.add_argument(
+        "--cache-root", default="cache", help="Local cache root directory"
+    )
     parser.add_argument("--cookie-path", default="cookies.txt", help="Cookie file path")
     parser.add_argument("--no-images", action="store_true", help="Skip image download")
-    parser.add_argument("--force", action="store_true", help="Force sync even if topic appears unchanged")
+    parser.add_argument(
+        "--force",
+        action="store_true",
+        help="Force sync even if topic appears unchanged",
+    )
     return parser
 
 

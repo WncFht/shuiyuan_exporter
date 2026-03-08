@@ -185,6 +185,31 @@ uv run python -m shuiyuan_cache.cli.export_cli -n -b 75214
 uv run python -m shuiyuan_cache.cli.export_cli -n -b 75214 276006 123456
 ```
 
+## 开发校验
+
+如果你也会继续维护这个仓库，建议把 `pre-commit` 打开：
+
+```bash
+uv sync --group dev
+uv run pre-commit install
+uv run pre-commit run --all-files
+```
+
+当前配置会做这些事：
+
+- 基础文件检查：YAML / TOML / merge conflict / 大文件 / 末尾空白
+- Python 自动升级：`pyupgrade --py312-plus`
+- Python 静态检查与自动修复：`ruff --fix`
+- Python 格式化：`ruff format`
+
+这些 hook 主要覆盖：
+
+- `shuiyuan_cache/`
+- `main.py`
+- `test.py`
+
+`cache/`、`posts/`、`.venv/` 不会进入 hook 主流程。
+
 ## 常用命令
 
 ### 查看帮助

@@ -29,16 +29,32 @@ class TopicSyncService:
     def close(self) -> None:
         self.sqlite_store.close()
 
-    def sync_topic(self, topic: str | int, mode: str = "incremental", with_images: bool = True, force: bool = False) -> SyncResult:
+    def sync_topic(
+        self,
+        topic: str | int,
+        mode: str = "incremental",
+        with_images: bool = True,
+        force: bool = False,
+    ) -> SyncResult:
         started_at = self._now_iso()
         topic_id = self.fetcher.resolve_topic_id(topic)
         topic_payload = self.fetcher.fetch_topic_meta(topic_id)
         topic_json_path = self.raw_store.save_topic_json(topic_id, topic_payload)
-        topic_record = self.post_normalizer.normalize_topic(topic_id, topic_payload, str(topic_json_path))
+        topic_record = self.post_normalizer.normalize_topic(
+            topic_id, topic_payload, str(topic_json_path)
+        )
         self.sqlite_store.upsert_topic(topic_record)
 
-        existing_state = self.sqlite_store.get_sync_state(topic_id) or self.raw_store.load_sync_state(topic_id)
-        plan = self.sync_planner.build_plan(topic_record, existing_state, mode=mode, force=force, with_images=with_images)
+        existing_state = self.sqlite_store.get_sync_state(
+            topic_id
+        ) or self.raw_store.load_sync_state(topic_id)
+        plan = self.sync_planner.build_plan(
+            topic_record,
+            existing_state,
+            mode=mode,
+            force=force,
+            with_images=with_images,
+        )
 
         inserted_posts = 0
         updated_posts = 0
@@ -52,16 +68,22 @@ class TopicSyncService:
             try:
                 page_payload = self.fetcher.fetch_topic_json_page(topic_id, page_no)
                 self.raw_store.save_json_page(topic_id, page_no, page_payload)
-                posts, media_records = self.post_normalizer.normalize_posts(topic_id, page_no, page_payload)
+                posts, media_records = self.post_normalizer.normalize_posts(
+                    topic_id, page_no, page_payload
+                )
                 page_inserted, page_updated = self.sqlite_store.upsert_posts(posts)
                 inserted_posts += page_inserted
                 updated_posts += page_updated
                 if plan.should_download_images:
-                    media_records, page_downloaded, page_skipped, media_errors = self.media_store.download_images(media_records)
+                    media_records, page_downloaded, page_skipped, media_errors = (
+                        self.media_store.download_images(media_records)
+                    )
                     downloaded_images += page_downloaded
                     skipped_images += page_skipped
                     errors.extend(media_errors)
-                media_inserted, media_updated = self.sqlite_store.upsert_media(media_records)
+                media_inserted, media_updated = self.sqlite_store.upsert_media(
+                    media_records
+                )
                 inserted_media += media_inserted
                 updated_media += media_updated
             except Exception as exc:
@@ -83,7 +105,9 @@ class TopicSyncService:
             last_synced_raw_page=plan.current_raw_pages,
             last_synced_post_number=topic_record.posts_count,
             last_sync_mode=plan.mode,
-            last_sync_status="partial" if errors else ("unchanged" if plan.skip_reason else "success"),
+            last_sync_status="partial"
+            if errors
+            else ("unchanged" if plan.skip_reason else "success"),
             last_sync_started_at=started_at,
             last_sync_finished_at=finished_at,
             last_sync_error="\n".join(errors) if errors else plan.skip_reason,

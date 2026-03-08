@@ -31,7 +31,11 @@ class TopicSummaryService:
         inspect = self.inspect_service.inspect_topic(resolved_topic_id)
         date_from = None
         if recent_days is not None:
-            date_from = (datetime.now(timezone.utc) - timedelta(days=recent_days)).replace(microsecond=0).isoformat()
+            date_from = (
+                (datetime.now(timezone.utc) - timedelta(days=recent_days))
+                .replace(microsecond=0)
+                .isoformat()
+            )
         result = self.query_service.query_topic_posts(
             topic_id=resolved_topic_id,
             only_op=only_op,
@@ -43,9 +47,9 @@ class TopicSummaryService:
         if not items:
             return TopicSummary(
                 topic_id=resolved_topic_id,
-                title=inspect.title or f'topic-{resolved_topic_id}',
-                summary_text='No cached posts matched the requested summary scope.',
-                time_range='N/A',
+                title=inspect.title or f"topic-{resolved_topic_id}",
+                summary_text="No cached posts matched the requested summary scope.",
+                time_range="N/A",
                 post_count_in_scope=0,
                 top_authors=[],
                 top_keywords=[],
@@ -53,13 +57,19 @@ class TopicSummaryService:
                 image_post_numbers=[],
             )
 
-        top_authors = Counter(item.username or 'unknown' for item in items).most_common(5)
+        top_authors = Counter(item.username or "unknown" for item in items).most_common(
+            5
+        )
         keyword_counts = self._count_keywords(items, focus_keywords or [])
-        image_post_numbers = [item.post_number for item in items if item.image_count][:10]
+        image_post_numbers = [item.post_number for item in items if item.image_count][
+            :10
+        ]
         key_posts = self._select_key_posts(items)
-        time_range = f"{items[0].created_at or 'unknown'} -> {items[-1].created_at or 'unknown'}"
+        time_range = (
+            f"{items[0].created_at or 'unknown'} -> {items[-1].created_at or 'unknown'}"
+        )
         summary_text = self._build_summary_text(
-            title=inspect.title or f'topic-{resolved_topic_id}',
+            title=inspect.title or f"topic-{resolved_topic_id}",
             post_count=len(items),
             only_op=only_op,
             recent_days=recent_days,
@@ -70,7 +80,7 @@ class TopicSummaryService:
         )
         return TopicSummary(
             topic_id=resolved_topic_id,
-            title=inspect.title or f'topic-{resolved_topic_id}',
+            title=inspect.title or f"topic-{resolved_topic_id}",
             summary_text=summary_text,
             time_range=time_range,
             post_count_in_scope=len(items),
@@ -83,14 +93,18 @@ class TopicSummaryService:
     @staticmethod
     def _count_keywords(items, focus_keywords: list[str]) -> list[tuple[str, int]]:
         if focus_keywords:
-            combined = '\n'.join(item.plain_text or '' for item in items).lower()
-            return [(kw, combined.count(kw.lower())) for kw in focus_keywords if combined.count(kw.lower()) > 0]
+            combined = "\n".join(item.plain_text or "" for item in items).lower()
+            return [
+                (kw, combined.count(kw.lower()))
+                for kw in focus_keywords
+                if combined.count(kw.lower()) > 0
+            ]
 
         token_counter: Counter[str] = Counter()
-        stopwords = {'https', 'http', 'the', 'and', 'that', 'this', 'with', 'from'}
+        stopwords = {"https", "http", "the", "and", "that", "this", "with", "from"}
         for item in items:
-            text = item.plain_text or ''
-            for token in re.findall(r'[A-Za-z][A-Za-z0-9_-]{1,}', text):
+            text = item.plain_text or ""
+            for token in re.findall(r"[A-Za-z][A-Za-z0-9_-]{1,}", text):
                 token_lower = token.lower()
                 if token_lower not in stopwords:
                     token_counter[token_lower] += 1
@@ -111,20 +125,39 @@ class TopicSummaryService:
         return selected[:6]
 
     @staticmethod
-    def _build_summary_text(title: str, post_count: int, only_op: bool, recent_days: int | None, top_authors, image_post_numbers, key_posts, keyword_counts) -> str:
-        parts = [f'Topic "{title}" matched {post_count} cached posts in the current scope.']
+    def _build_summary_text(
+        title: str,
+        post_count: int,
+        only_op: bool,
+        recent_days: int | None,
+        top_authors,
+        image_post_numbers,
+        key_posts,
+        keyword_counts,
+    ) -> str:
+        parts = [
+            f'Topic "{title}" matched {post_count} cached posts in the current scope.'
+        ]
         if only_op:
-            parts.append('The scope is restricted to the original poster.')
+            parts.append("The scope is restricted to the original poster.")
         if recent_days is not None:
-            parts.append(f'The scope is limited to the most recent {recent_days} days.')
+            parts.append(f"The scope is limited to the most recent {recent_days} days.")
         if top_authors:
-            author_text = ', '.join(f'{name}({count})' for name, count in top_authors[:3])
-            parts.append(f'Most active authors in scope: {author_text}.')
+            author_text = ", ".join(
+                f"{name}({count})" for name, count in top_authors[:3]
+            )
+            parts.append(f"Most active authors in scope: {author_text}.")
         if keyword_counts:
-            keyword_text = ', '.join(f'{name}({count})' for name, count in keyword_counts[:5])
-            parts.append(f'Notable keywords/tokens: {keyword_text}.')
+            keyword_text = ", ".join(
+                f"{name}({count})" for name, count in keyword_counts[:5]
+            )
+            parts.append(f"Notable keywords/tokens: {keyword_text}.")
         if image_post_numbers:
-            parts.append(f'Image-bearing posts include: {", ".join(f"#{num}" for num in image_post_numbers[:5])}.')
+            parts.append(
+                f"Image-bearing posts include: {', '.join(f'#{num}' for num in image_post_numbers[:5])}."
+            )
         if key_posts:
-            parts.append(f'Key posts to review: {", ".join(f"#{num}" for num in key_posts)}.')
-        return ' '.join(parts)
+            parts.append(
+                f"Key posts to review: {', '.join(f'#{num}' for num in key_posts)}."
+            )
+        return " ".join(parts)

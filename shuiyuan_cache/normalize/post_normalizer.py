@@ -13,10 +13,14 @@ class PostNormalizer:
         self.media_normalizer = media_normalizer
 
     @staticmethod
-    def normalize_topic(topic_id: int, payload: dict[str, Any], topic_json_path: str) -> TopicRecord:
+    def normalize_topic(
+        topic_id: int, payload: dict[str, Any], topic_json_path: str
+    ) -> TopicRecord:
         tags = payload.get("tags") or []
         if tags and isinstance(tags[0], dict):
-            tags_json = json.dumps([tag.get("name") for tag in tags], ensure_ascii=False)
+            tags_json = json.dumps(
+                [tag.get("name") for tag in tags], ensure_ascii=False
+            )
         else:
             tags_json = json.dumps(tags, ensure_ascii=False)
         return TopicRecord(
@@ -36,7 +40,9 @@ class PostNormalizer:
             topic_json_path=topic_json_path,
         )
 
-    def normalize_posts(self, topic_id: int, page_no: int, payload: dict[str, Any]) -> tuple[list[PostRecord], list]:
+    def normalize_posts(
+        self, topic_id: int, page_no: int, payload: dict[str, Any]
+    ) -> tuple[list[PostRecord], list]:
         posts_payload = payload.get("post_stream", {}).get("posts", [])
         posts: list[PostRecord] = []
         media_records = []
@@ -50,8 +56,8 @@ class PostNormalizer:
                 cooked_html=cooked_html,
             )
             has_attachments = 'class="attachment"' in cooked_html
-            has_video = 'data-video-src=' in cooked_html
-            has_audio = '<audio' in cooked_html
+            has_video = "data-video-src=" in cooked_html
+            has_audio = "<audio" in cooked_html
             media_records.extend(images)
             posts.append(
                 PostRecord(
@@ -77,7 +83,9 @@ class PostNormalizer:
                     has_video=has_video,
                     image_count=len(images),
                     hash_raw=None,
-                    hash_cooked=hashlib.sha1(cooked_html.encode("utf-8")).hexdigest() if cooked_html else None,
+                    hash_cooked=hashlib.sha1(cooked_html.encode("utf-8")).hexdigest()
+                    if cooked_html
+                    else None,
                 )
             )
         return posts, media_records

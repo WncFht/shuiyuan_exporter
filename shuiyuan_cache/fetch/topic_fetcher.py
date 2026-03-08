@@ -30,7 +30,9 @@ class TopicFetcher:
             topic_id = topic_id[1:]
         return int(topic_id)
 
-    def topic_json_url(self, topic_id: int, page_no: int | None = None, track: bool = False) -> str:
+    def topic_json_url(
+        self, topic_id: int, page_no: int | None = None, track: bool = False
+    ) -> str:
         suffix = f"/t/{topic_id}.json"
         params = []
         if page_no is not None:

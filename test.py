@@ -1,8 +1,6 @@
 import subprocess
 import re
-import sys
 import argparse
-from typing import List, Dict
 
 # 命令和次数
 _test_output = """
@@ -62,32 +60,36 @@ topic:276006 文字备份中...
 附件爬取耗时: 0.41994595527648926 秒
 """
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     command = ""
     n = 5
     parser = argparse.ArgumentParser()
-    parser.add_argument('-n', '--number', help="repeat times to calculate the avg time consumption")
-    parser.add_argument('-t', '--test', action='store_true', help="test this program")
-    parser.add_argument('-c', '--command', type=str, help="command to execute")
+    parser.add_argument(
+        "-n", "--number", help="repeat times to calculate the avg time consumption"
+    )
+    parser.add_argument("-t", "--test", action="store_true", help="test this program")
+    parser.add_argument("-c", "--command", type=str, help="command to execute")
     args = parser.parse_args()
     if args.number:
         n = int(args.number)
     if args.command:
         command = args.command
     # 用于存储每次运行的耗时
-    times:Dict[str, List[float]] = {}
+    times: dict[str, list[float]] = {}
 
     # 运行命令 n 次
     for _ in range(n):
         if args.test:
             output = _test_output
         else:
-            result = subprocess.run(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-            output = result.stdout.decode('utf-8')
-        match_lists = re.findall(r'([^\x00-\xff]+)爬取耗时: ([\d.]+) 秒', output)
+            result = subprocess.run(
+                command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT
+            )
+            output = result.stdout.decode("utf-8")
+        match_lists = re.findall(r"([^\x00-\xff]+)爬取耗时: ([\d.]+) 秒", output)
         for match in match_lists:
             if match and len(match) >= 2:
-                if not match[0]in times:
+                if match[0] not in times:
                     times[match[0]] = []
                 times[match[0]].append(float(match[1]))
 

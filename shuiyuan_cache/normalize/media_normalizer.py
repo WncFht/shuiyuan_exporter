@@ -11,14 +11,18 @@ class MediaNormalizer:
     def __init__(self, config: CacheConfig):
         self.config = config
 
-    def normalize_images(self, topic_id: int, post_id: int, post_number: int, cooked_html: str) -> list[MediaRecord]:
+    def normalize_images(
+        self, topic_id: int, post_id: int, post_number: int, cooked_html: str
+    ) -> list[MediaRecord]:
         soup = BeautifulSoup(cooked_html or "", "html.parser")
         records: list[MediaRecord] = []
         for image in soup.find_all("img"):
             src = image.get("src") or ""
             resolved_url = self._absolute_url(src)
             upload_ref = image.get("data-orig-src")
-            media_key = image.get("data-base62-sha1") or self._fallback_media_key(resolved_url)
+            media_key = image.get("data-base62-sha1") or self._fallback_media_key(
+                resolved_url
+            )
             file_ext = self._guess_extension(resolved_url)
             records.append(
                 MediaRecord(

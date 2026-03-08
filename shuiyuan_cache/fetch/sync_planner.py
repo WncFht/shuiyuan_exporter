@@ -15,8 +15,12 @@ class SyncPlanner:
         force: bool = False,
         with_images: bool = True,
     ) -> SyncPlan:
-        current_json_pages = TopicFetcher.page_count(topic.posts_count, self.config.json_page_size)
-        current_raw_pages = TopicFetcher.page_count(topic.posts_count, self.config.raw_page_size)
+        current_json_pages = TopicFetcher.page_count(
+            topic.posts_count, self.config.json_page_size
+        )
+        current_raw_pages = TopicFetcher.page_count(
+            topic.posts_count, self.config.raw_page_size
+        )
 
         if mode == "full" or existing_state is None:
             return SyncPlan(
@@ -47,8 +51,18 @@ class SyncPlanner:
             json_start = max(1, current_json_pages - self.config.tail_refresh_pages + 1)
             raw_start = max(1, current_raw_pages - self.config.tail_refresh_pages + 1)
         else:
-            json_start = max(1, min(existing_state.last_synced_json_page or 1, current_json_pages) - self.config.tail_refresh_pages + 1)
-            raw_start = max(1, min(existing_state.last_synced_raw_page or 1, current_raw_pages) - self.config.tail_refresh_pages + 1)
+            json_start = max(
+                1,
+                min(existing_state.last_synced_json_page or 1, current_json_pages)
+                - self.config.tail_refresh_pages
+                + 1,
+            )
+            raw_start = max(
+                1,
+                min(existing_state.last_synced_raw_page or 1, current_raw_pages)
+                - self.config.tail_refresh_pages
+                + 1,
+            )
 
         return SyncPlan(
             topic_id=topic.topic_id,

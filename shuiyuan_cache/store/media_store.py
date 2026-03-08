@@ -1,5 +1,3 @@
-from pathlib import Path
-
 from shuiyuan_cache.core.models import MediaRecord
 from shuiyuan_cache.fetch.session import ShuiyuanSession
 from shuiyuan_cache.store.paths import CachePaths
@@ -10,16 +8,25 @@ class MediaStore:
         self.paths = paths
         self.session = session
 
-    def download_images(self, media_records: list[MediaRecord]) -> tuple[list[MediaRecord], int, int, list[str]]:
+    def download_images(
+        self, media_records: list[MediaRecord]
+    ) -> tuple[list[MediaRecord], int, int, list[str]]:
         downloaded = 0
         skipped = 0
         errors: list[str] = []
         updated_records: list[MediaRecord] = []
         for media in media_records:
-            if media.media_type != "image" or not media.resolved_url or not media.media_key or not media.file_ext:
+            if (
+                media.media_type != "image"
+                or not media.resolved_url
+                or not media.media_key
+                or not media.file_ext
+            ):
                 updated_records.append(media)
                 continue
-            local_path = self.paths.ensure_parent(self.paths.image_path(media.media_key, media.file_ext))
+            local_path = self.paths.ensure_parent(
+                self.paths.image_path(media.media_key, media.file_ext)
+            )
             media.local_path = str(local_path)
             if local_path.exists() and local_path.stat().st_size > 0:
                 media.download_status = "skipped"
@@ -37,6 +44,8 @@ class MediaStore:
                 downloaded += 1
             except Exception as exc:
                 media.download_status = "failed"
-                errors.append(f"image download failed for post #{media.post_number}: {exc}")
+                errors.append(
+                    f"image download failed for post #{media.post_number}: {exc}"
+                )
             updated_records.append(media)
         return updated_records, downloaded, skipped, errors

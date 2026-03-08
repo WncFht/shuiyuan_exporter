@@ -1,9 +1,14 @@
 import sqlite3
 import time
 from pathlib import Path
-from typing import Iterable, Optional
+from collections.abc import Iterable
 
-from shuiyuan_cache.core.models import MediaRecord, PostRecord, SyncStateRecord, TopicRecord
+from shuiyuan_cache.core.models import (
+    MediaRecord,
+    PostRecord,
+    SyncStateRecord,
+    TopicRecord,
+)
 
 
 SCHEMA = """
@@ -139,8 +144,10 @@ class SQLiteStore:
         self.conn.executescript(SCHEMA)
         self.conn.commit()
 
-    def get_sync_state(self, topic_id: int) -> Optional[SyncStateRecord]:
-        row = self.conn.execute("SELECT * FROM sync_state WHERE topic_id = ?", (topic_id,)).fetchone()
+    def get_sync_state(self, topic_id: int) -> SyncStateRecord | None:
+        row = self.conn.execute(
+            "SELECT * FROM sync_state WHERE topic_id = ?", (topic_id,)
+        ).fetchone()
         if row is None:
             return None
         data = dict(row)
@@ -274,7 +281,9 @@ class SQLiteStore:
 
     def refresh_fts(self, posts: Iterable[PostRecord]) -> None:
         for post in posts:
-            self.conn.execute("DELETE FROM posts_fts WHERE post_id = ?", (post.post_id,))
+            self.conn.execute(
+                "DELETE FROM posts_fts WHERE post_id = ?", (post.post_id,)
+            )
             self.conn.execute(
                 "INSERT INTO posts_fts (topic_id, post_id, post_number, username, plain_text, raw_markdown) VALUES (?, ?, ?, ?, ?, ?)",
                 (
@@ -330,10 +339,17 @@ class SQLiteStore:
             keeper = self._choose_media_keeper(candidates, media)
             merged_existing = self._merge_media_candidates(candidates)
             payload = self._merge_media_record(merged_existing, media, now_ts)
-            duplicate_ids = [row["media_id"] for row in candidates if row["media_id"] != keeper["media_id"]]
+            duplicate_ids = [
+                row["media_id"]
+                for row in candidates
+                if row["media_id"] != keeper["media_id"]
+            ]
             if duplicate_ids:
                 placeholders = ",".join(["?"] * len(duplicate_ids))
-                self.conn.execute(f"DELETE FROM media WHERE media_id IN ({placeholders})", duplicate_ids)
+                self.conn.execute(
+                    f"DELETE FROM media WHERE media_id IN ({placeholders})",
+                    duplicate_ids,
+                )
             self.conn.execute(
                 """
                 UPDATE media
@@ -399,13 +415,15 @@ class SQLiteStore:
         sql = f"""
             SELECT *
             FROM media
-            WHERE {' AND '.join(clauses)}
-              AND ({' OR '.join(identity_clauses)})
+            WHERE {" AND ".join(clauses)}
+              AND ({" OR ".join(identity_clauses)})
             ORDER BY media_id ASC
         """
         return self.conn.execute(sql, [*params, *identity_params]).fetchall()
 
-    def _choose_media_keeper(self, rows: list[sqlite3.Row], media: MediaRecord) -> sqlite3.Row:
+    def _choose_media_keeper(
+        self, rows: list[sqlite3.Row], media: MediaRecord
+    ) -> sqlite3.Row:
         if media.upload_ref:
             for row in rows:
                 if row["upload_ref"] == media.upload_ref:
@@ -423,15 +441,23 @@ class SQLiteStore:
     def _merge_media_candidates(self, rows: list[sqlite3.Row]) -> dict:
         merged = dict(rows[0])
         for row in rows[1:]:
-            merged["post_id"] = merged["post_id"] if merged["post_id"] is not None else row["post_id"]
-            merged["post_number"] = merged["post_number"] if merged["post_number"] is not None else row["post_number"]
+            merged["post_id"] = (
+                merged["post_id"] if merged["post_id"] is not None else row["post_id"]
+            )
+            merged["post_number"] = (
+                merged["post_number"]
+                if merged["post_number"] is not None
+                else row["post_number"]
+            )
             merged["upload_ref"] = merged["upload_ref"] or row["upload_ref"]
             merged["resolved_url"] = merged["resolved_url"] or row["resolved_url"]
             merged["local_path"] = merged["local_path"] or row["local_path"]
             merged["mime_type"] = merged["mime_type"] or row["mime_type"]
             merged["file_ext"] = merged["file_ext"] or row["file_ext"]
             merged["media_key"] = merged["media_key"] or row["media_key"]
-            merged["download_status"] = self._choose_download_status(merged["download_status"], row["download_status"])
+            merged["download_status"] = self._choose_download_status(
+                merged["download_status"], row["download_status"]
+            )
             if merged["content_length"] is None:
                 merged["content_length"] = row["content_length"]
             if row["created_ts"] is not None:
@@ -446,13 +472,23 @@ class SQLiteStore:
                     merged["updated_ts"] = max(merged["updated_ts"], row["updated_ts"])
         return merged
 
-    def _merge_media_record(self, existing: dict, media: MediaRecord, now_ts: int) -> dict:
+    def _merge_media_record(
+        self, existing: dict, media: MediaRecord, now_ts: int
+    ) -> dict:
         existing_download_status = existing.get("download_status")
-        incoming_download_status = media.download_status or existing_download_status or "pending"
-        merged_download_status = self._choose_download_status(existing_download_status, incoming_download_status)
+        incoming_download_status = (
+            media.download_status or existing_download_status or "pending"
+        )
+        merged_download_status = self._choose_download_status(
+            existing_download_status, incoming_download_status
+        )
         return {
-            "post_id": media.post_id if media.post_id is not None else existing.get("post_id"),
-            "post_number": media.post_number if media.post_number is not None else existing.get("post_number"),
+            "post_id": media.post_id
+            if media.post_id is not None
+            else existing.get("post_id"),
+            "post_number": media.post_number
+            if media.post_number is not None
+            else existing.get("post_number"),
             "media_type": media.media_type or existing.get("media_type"),
             "upload_ref": media.upload_ref or existing.get("upload_ref"),
             "resolved_url": media.resolved_url or existing.get("resolved_url"),
@@ -461,21 +497,27 @@ class SQLiteStore:
             "file_ext": media.file_ext or existing.get("file_ext"),
             "media_key": media.media_key or existing.get("media_key"),
             "download_status": merged_download_status,
-            "content_length": media.content_length if media.content_length is not None else existing.get("content_length"),
-            "created_ts": existing.get("created_ts") if existing.get("created_ts") is not None else now_ts,
+            "content_length": media.content_length
+            if media.content_length is not None
+            else existing.get("content_length"),
+            "created_ts": existing.get("created_ts")
+            if existing.get("created_ts") is not None
+            else now_ts,
             "updated_ts": now_ts,
         }
 
-    def _choose_download_status(self, current: Optional[str], incoming: Optional[str]) -> str:
+    def _choose_download_status(self, current: str | None, incoming: str | None) -> str:
         if not current:
             return incoming or "pending"
         if not incoming:
             return current
-        if self._download_status_priority(incoming) >= self._download_status_priority(current):
+        if self._download_status_priority(incoming) >= self._download_status_priority(
+            current
+        ):
             return incoming
         return current
 
-    def _download_status_priority(self, status: Optional[str]) -> int:
+    def _download_status_priority(self, status: str | None) -> int:
         if status is None:
             return -1
         return self.DOWNLOAD_STATUS_PRIORITY.get(status, 0)

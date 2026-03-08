@@ -12,7 +12,7 @@ a = Analysis(
             ('test.py', 'test.py'),
             ('image_handler.py', 'image_handler.py'),
             ('quality_list.py', 'quality_list.py'),
-            ('README.md', 'README.md')], 
+            ('README.md', 'README.md')],
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},

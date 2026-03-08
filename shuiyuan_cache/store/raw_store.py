@@ -1,6 +1,6 @@
 import json
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 from shuiyuan_cache.core.models import SyncStateRecord
 from shuiyuan_cache.store.paths import CachePaths
@@ -13,12 +13,18 @@ class RawStore:
 
     def save_topic_json(self, topic_id: int, payload: dict[str, Any]) -> Path:
         path = self.paths.ensure_parent(self.paths.topic_json_path(topic_id))
-        path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+        path.write_text(
+            json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8"
+        )
         return path
 
-    def save_json_page(self, topic_id: int, page_no: int, payload: dict[str, Any]) -> Path:
+    def save_json_page(
+        self, topic_id: int, page_no: int, payload: dict[str, Any]
+    ) -> Path:
         path = self.paths.ensure_parent(self.paths.json_page_path(topic_id, page_no))
-        path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+        path.write_text(
+            json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8"
+        )
         return path
 
     def save_raw_page(self, topic_id: int, page_no: int, text: str) -> Path:
@@ -33,10 +39,12 @@ class RawStore:
 
     def save_sync_state(self, state: SyncStateRecord) -> Path:
         path = self.paths.ensure_parent(self.paths.sync_state_path(state.topic_id))
-        path.write_text(json.dumps(state.to_dict(), ensure_ascii=False, indent=2), encoding="utf-8")
+        path.write_text(
+            json.dumps(state.to_dict(), ensure_ascii=False, indent=2), encoding="utf-8"
+        )
         return path
 
-    def load_sync_state(self, topic_id: int) -> Optional[SyncStateRecord]:
+    def load_sync_state(self, topic_id: int) -> SyncStateRecord | None:
         path = self.paths.sync_state_path(topic_id)
         if not path.exists():
             return None

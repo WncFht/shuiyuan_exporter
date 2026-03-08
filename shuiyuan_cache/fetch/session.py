@@ -14,7 +14,9 @@ class ShuiyuanSession:
     def __init__(self, config: CacheConfig):
         self.config = config
         self.session = requests.Session()
-        retry = Retry(connect=config.retry_connect, backoff_factor=config.backoff_factor)
+        retry = Retry(
+            connect=config.retry_connect, backoff_factor=config.backoff_factor
+        )
         adapter = HTTPAdapter(max_retries=retry)
         self.session.mount("http://", adapter)
         self.session.mount("https://", adapter)
@@ -29,7 +31,9 @@ class ShuiyuanSession:
         self.session.headers.update(headers)
 
     def resolve_cookie_header(self) -> str:
-        storage_cookie_text = build_cookie_header_from_storage_state(self.config.storage_state_path, self.config.base_url)
+        storage_cookie_text = build_cookie_header_from_storage_state(
+            self.config.storage_state_path, self.config.base_url
+        )
         if storage_cookie_text:
             return storage_cookie_text
         return self.read_cookie(self.config.cookie_path)
@@ -49,12 +53,18 @@ class ShuiyuanSession:
     def get(self, url: str, **kwargs: Any) -> requests.Response:
         response = self.session.get(url, timeout=self.config.request_timeout, **kwargs)
         if response.status_code >= 400:
-            detail = response.text[:200].replace('\n', ' ')
-            if 'not_logged_in' in detail or '您需要登录' in detail:
-                raise FetchError(f"Authentication failed for {url}. Your Shuiyuan cookie may be expired.")
-            raise FetchError(f"Request failed: {response.status_code} {url} :: {detail}")
-        if 'SJTU Single Sign On' in response.text:
-            raise FetchError(f"Authentication failed for {url}. Your Shuiyuan cookie may be expired.")
+            detail = response.text[:200].replace("\n", " ")
+            if "not_logged_in" in detail or "您需要登录" in detail:
+                raise FetchError(
+                    f"Authentication failed for {url}. Your Shuiyuan cookie may be expired."
+                )
+            raise FetchError(
+                f"Request failed: {response.status_code} {url} :: {detail}"
+            )
+        if "SJTU Single Sign On" in response.text:
+            raise FetchError(
+                f"Authentication failed for {url}. Your Shuiyuan cookie may be expired."
+            )
         return response
 
     def get_json(self, url: str) -> dict[str, Any]:
