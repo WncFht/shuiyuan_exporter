@@ -5,6 +5,7 @@ import requests
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
+from shuiyuan_cache.auth.storage_state import build_cookie_header_from_storage_state
 from shuiyuan_cache.core.config import CacheConfig
 from shuiyuan_cache.core.exceptions import FetchError
 
@@ -17,13 +18,21 @@ class ShuiyuanSession:
         adapter = HTTPAdapter(max_retries=retry)
         self.session.mount("http://", adapter)
         self.session.mount("https://", adapter)
-        self.session.headers.update(
-            {
-                "User-Agent": config.user_agent,
-                "Accept": "application/json, text/javascript, */*; q=0.01",
-                "Cookie": self.read_cookie(config.cookie_path),
-            }
-        )
+
+        headers = {
+            "User-Agent": config.user_agent,
+            "Accept": "application/json, text/javascript, */*; q=0.01",
+        }
+        cookie_header = self.resolve_cookie_header()
+        if cookie_header:
+            headers["Cookie"] = cookie_header
+        self.session.headers.update(headers)
+
+    def resolve_cookie_header(self) -> str:
+        cookie_text = self.read_cookie(self.config.cookie_path)
+        if cookie_text:
+            return cookie_text
+        return build_cookie_header_from_storage_state(self.config.storage_state_path, self.config.base_url)
 
     @staticmethod
     def read_cookie(path: Path) -> str:

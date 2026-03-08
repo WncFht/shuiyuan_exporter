@@ -81,6 +81,47 @@ _cookie_name=value; another_cookie=value; ...
 
 脚本启动后也可以直接粘贴 Cookie；如果想复用 `cookies.txt` 里上一次保存的结果，输入 `!!!` 即可。
 
+## 推荐认证方式：独立浏览器 profile + `auth.json`
+
+如果你后面准备长期做本地缓存、批量抓取或者 skill，推荐不要手工复制 Cookie，而是使用项目内置的认证管理命令：
+
+```bash
+uv run python -m shuiyuan_cache.cli.auth_cli setup
+```
+
+默认行为：
+
+- 会启动一个**独立的 Edge 浏览器 profile**（不会直接动你平时日常使用的浏览器配置）
+- 你在打开的窗口里手动登录饮水思源
+- 回到终端按一次回车
+- 项目会自动保存：
+  - `cache/auth/browser_profile/`：独立浏览器 profile
+  - `cache/auth/auth.json`：Playwright `storageState`
+  - `cookies.txt`：导出的当前可复用 Cookie
+
+你也可以查看当前认证状态：
+
+```bash
+uv run python -m shuiyuan_cache.cli.auth_cli status
+```
+
+如果后面只是想基于同一个 profile 重新导出最新登录态：
+
+```bash
+uv run python -m shuiyuan_cache.cli.auth_cli refresh
+```
+
+说明：
+
+- 在 mac 上默认使用已安装的 **Microsoft Edge** 作为自动化浏览器
+- 如果你不想用 Edge，也可以改成：
+
+```bash
+uv run python -m shuiyuan_cache.cli.auth_cli setup --browser chromium
+```
+
+- `sync_cli` 现在会优先读取 `cookies.txt`，如果没有，则会自动回退读取 `cache/auth/auth.json` 中保存的 Cookie
+
 ## 快速开始
 
 ### 交互模式
