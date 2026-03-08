@@ -57,7 +57,7 @@
 最新状态：
 
 - 原始 Markdown 导出优先读取 `cache/raw/topics/<topic_id>/`
-- 楼层引用优先读取 `posts/*.raw.md`
+- 楼层引用优先读取 `raw/post_refs/<topic_id>/*.raw.md`
 - 图片优先复用 `cache/media/images/`
 - 仅在缓存缺失时回退到网络请求
 
@@ -101,8 +101,9 @@ auth -> sync -> query/summary -> export
 ### 4.1 应继续保留的“当前文档”
 
 - `docs/RUNBOOK.md`
+- `docs/SKILL_DESIGN.md`
+- `docs/THREAD_POOL_REFACTOR_PLAN.md`
 - `docs/REPO_REFACTOR_PLAN.md`
-- `docs/SYSTEM_DESIGN.md`
 
 ### 4.2 应保留但需要按“历史规划稿”理解的文档
 

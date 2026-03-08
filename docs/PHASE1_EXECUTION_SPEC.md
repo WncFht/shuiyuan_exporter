@@ -1,7 +1,7 @@
 # Phase 1 执行规格（实施前冻结稿）
 
 版本：`v0.1`  
-状态：待批准后执行  
+状态：历史执行规格稿（主链路已实现，当前运行请优先参考 `docs/RUNBOOK.md`）  
 依赖文档：`TECHNICAL_PLAN.md`、`docs/SYSTEM_DESIGN.md`、`docs/SCHEMA_AND_API.md`
 
 ## 1. 目标

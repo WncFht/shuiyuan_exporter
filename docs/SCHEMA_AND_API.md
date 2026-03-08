@@ -1,7 +1,7 @@
 # Shuiyuan 缓存 Schema 与接口契约
 
 版本：`v0.1`  
-状态：设计稿（当前仓库已部分实现，实际运行命令请优先参考 `docs/RUNBOOK.md`）  
+状态：设计参考稿（当前仓库已部分实现，实际运行命令请优先参考 `docs/RUNBOOK.md`）  
 依赖文档：`TECHNICAL_PLAN.md`、`docs/SYSTEM_DESIGN.md`、`docs/IMPLEMENTATION_ROADMAP.md`
 
 ## 1. 文档目标
