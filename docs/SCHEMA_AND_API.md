@@ -1,7 +1,7 @@
 # Shuiyuan 缓存 Schema 与接口契约
 
 版本：`v0.1`  
-状态：执行前设计稿  
+状态：设计稿（当前仓库已部分实现，实际运行命令请优先参考 `docs/RUNBOOK.md`）  
 依赖文档：`TECHNICAL_PLAN.md`、`docs/SYSTEM_DESIGN.md`、`docs/IMPLEMENTATION_ROADMAP.md`
 
 ## 1. 文档目标
@@ -527,13 +527,14 @@ uv run python -m shuiyuan_cache.cli.query_cli 351551 --author 风花雪月 --lim
 ## 8.3 `export`
 
 ```bash
-uv run python -m shuiyuan_cache.cli.export_cli 351551 --only-op
+uv run python -m shuiyuan_cache.cli.export_cli -n -b 351551
 ```
 
 说明：
 
-- 第一阶段只要先做 `sync_cli`
-- `query_cli` 和 `export_cli` 可以在后续 phase 补齐
+- 规划阶段最初只要求先落地 `sync_cli`
+- 当前仓库已经实现 `sync_cli` / `query_cli` / `summary_cli` / `export_cli`
+- `export_cli` 当前定位仍然是兼容 Markdown 导出，而不是最终的 skill 输出接口
 
 ---
 

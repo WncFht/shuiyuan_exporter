@@ -1,7 +1,7 @@
 # Shuiyuan 系统实施路线与 Git 管理约定
 
 版本：`v0.1`  
-状态：执行前规划稿  
+状态：历史规划稿（已部分实现，当前运行方式请优先参考 `docs/RUNBOOK.md`）  
 依赖文档：`TECHNICAL_PLAN.md`、`docs/SYSTEM_DESIGN.md`
 
 ## 1. 文档目标
@@ -266,30 +266,33 @@ Add incremental sync planner for topic updates
 
 ## 6. 建议的目录演进路线
 
-第一阶段实施后，项目大概率会从当前扁平结构逐步演进成：
+当前仓库已经比这份规划稿更进一步，实际结构更接近：
 
 ```text
 shuiyuan_exporter/
   docs/
-    SYSTEM_DESIGN.md
-    IMPLEMENTATION_ROADMAP.md
-  legacy/
-    main.py
-    image_handler.py
-    attachments_handler.py
-    audio_handler.py
-    video_handler.py
-    utils.py
-  src/ or package modules
-  tests/
+  shuiyuan_cache/
+    analysis/
+    auth/
+    cli/
+    core/
+    export/
+    fetch/
+    normalize/
+    store/
+    sync/
+  cache/
+  main.py
   README.md
+  pyproject.toml
 ```
 
-注意：
+说明：
 
-- 这不是要求立刻迁移；
-- 只是说明长期演进方向；
-- 第一阶段也可以先在当前结构下逐步抽模块。
+- `shuiyuan_cache/` 已经成为主包；
+- `main.py` 只保留为兼容入口；
+- `cache/` 属于运行期数据目录，不作为源码结构的一部分；
+- 这份文档后续主要保留为“实施思路记录”。
 
 ---
 

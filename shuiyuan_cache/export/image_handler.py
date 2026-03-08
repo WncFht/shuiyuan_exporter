@@ -1,111 +1,74 @@
-import json
 import re
-import os
-from shuiyuan_cache.export.constants import Shuiyuan_Base, Shuiyuan_Topic_Json, json_limit, image_extensions
-from shuiyuan_cache.export.compat import ReqParam, make_request, parallel_topic_in_page
+from pathlib import Path
+from urllib.parse import urljoin
 
-def download_image(param: ReqParam, output_dir:str, sha1_name:str):
-    """
-    从水源上下载图片到本地(以进行markdown格式替换)
-    :param param: 请求参数
-    :param output_dir: 保存文件夹
-    :param sha1_name: 图片的sha1
-    :return:
-    """
-    response = make_request(param, once=False)
-    if response is None:
-        return
-    os.makedirs(output_dir, exist_ok=True)
-    output_path = os.path.join(output_dir, sha1_name)
-    with open(output_path, 'wb') as f:
-        f.write(response.content)
+from shuiyuan_cache.export.cache_bridge import get_export_cache_bridge
+from shuiyuan_cache.export.constants import Shuiyuan_Base, image_extensions
 
 
-def img_replace(path:str, filename:str, topic:str):
-    """
-    替换原始拉取的raw图片内容
-    :param path:
-    :param filename:
-    :param topic:
-    :return:
-    """
+DELETED_IMAGE_PATTERN = re.compile(r'<img src="[a-zA-Z0-9_:\/\-\.]+" alt=".*?" data-orig-src="(.*?)"')
+IMAGE_PATTERN = re.compile(r'<img src="([a-zA-Z0-9_:\/\-\.]+)" alt=".*?" data-base62-sha1="(.*?)"')
+UPLOAD_IMAGE_PATTERN = re.compile(r'!\[.*?]\(upload://([a-zA-Z0-9\.]+)\)')
+
+
+def _normalize_topic_id(topic: str | int) -> str:
+    topic_text = str(topic)
+    return topic_text[1:] if topic_text.startswith('L') else topic_text
+
+
+def _has_known_image_ext(name: str) -> bool:
+    match_ext = re.search(r'\.([a-zA-Z0-9]+)$', name)
+    return not match_ext or f'.{match_ext.group(1)}' in image_extensions
+
+
+def _collect_image_rewrites(topic: str | int, output_image_dir: Path) -> tuple[list[str], list[str]]:
+    topic_id = _normalize_topic_id(topic)
+    cache_bridge = get_export_cache_bridge()
+    deleted_names: list[str] = []
+    real_names: list[str] = []
+
+    for post in cache_bridge.iter_json_posts(topic_id):
+        html_content = post.get('cooked') or ''
+        deleted_names.extend(name.removeprefix('upload://') for name in DELETED_IMAGE_PATTERN.findall(html_content))
+        matches = IMAGE_PATTERN.findall(html_content)
+        if not matches:
+            continue
+        for src, name in matches:
+            resolved_url = urljoin(Shuiyuan_Base, src)
+            ext_match = re.search(r'\.([a-zA-Z0-9]+)(?:$|[?#])', resolved_url)
+            if not ext_match:
+                continue
+            ext = ext_match.group(1)
+            cache_bridge.ensure_output_image(name, ext, resolved_url, output_image_dir)
+            real_names.append(f'{name}.{ext}')
+
+    return real_names, deleted_names
+
+
+def img_replace(path: str, filename: str, topic: str):
     print('图片载入中...')
-    file = open(path + filename, 'r', encoding='utf-8')
-    md_content = file.read()
+    file_path = Path(path) / filename
+    md_content = file_path.read_text(encoding='utf-8')
 
-    """
-    case 1: 
-    raw文本： ![<name0>|<width>x<height>](upload://<fake_name>)
-    cooked内容： <img src="<address>.<extension>", ..., data-base62-sha1="<real_name>">
-    替换后： ![<name0>|<width>x<height>](./images/<real_name>.<extension>)
-    
-    case 2:
-    raw文本： ![<name0>|<width>x<height>](upload://<name>.<fake_extension>)
-    cooked内容： <img src="<address>.<real_extension>", ..., data-base62-sha1="<name>">
-    替换后： ![<name0>|<width>x<height>](./images/<name>.<real_extension>)
-    
-    case 3:
-    raw文本： ![<name0>|<width>x<height>](upload://<name>.<extension>)
-    cooked内容： <img src="<address>.<extension>", ..., data-base62-sha1="<name>">
-    替换后： ![<name0>|<width>x<height>](./images/<name>.<extension>)
-    """
-    name_with_fake_exts = re.findall(r'!\[.*?]\(upload:\/\/([a-zA-Z0-9\.]+)\)', md_content)
-    for name in name_with_fake_exts:
-        match_ext = re.search(r'\.([a-zA-Z0-9]+)$', name)
-        if match_ext and ("." + match_ext.group(1)) not in image_extensions:
-            name_with_fake_exts.remove(name)
-    deleted_names = []
-    @parallel_topic_in_page(topic=topic, limit=json_limit)
-    def fetch_image(page_no: int):
-        nonlocal deleted_names
-        url_json = Shuiyuan_Topic_Json + topic + '.json' + "?page=" + str(page_no)
-        req_param = ReqParam(url=url_json)
-        response_json = make_request(req_param, True)
-        ret = []
-        if response_json.status_code == 200:
-            data = json.loads(response_json.text)
-            posts_list = data['post_stream']['posts']
-            for post in posts_list:
-                html_content = post['cooked']
-                """
-                exist: r'<img src="([a-zA-Z0-9_:\/\-\.]+)" alt=".*?" data-base62-sha1="(.*?)"'
-                deleted: r'<img src="([a-zA-Z0-9_:\/\-\.]+)" alt=".*?" data-orig-src="(.*?)"'
-                """
-                pattern_deleted = r'<img src="[a-zA-Z0-9_:\/\-\.]+" alt=".*?" data-orig-src="(.*?)"'
-                matches_deleted = re.findall(pattern_deleted, html_content)
-                if matches_deleted:
-                    deleted_names += [deleted_name.removeprefix("upload://") for deleted_name in matches_deleted]
+    name_with_fake_exts = [name for name in UPLOAD_IMAGE_PATTERN.findall(md_content) if _has_known_image_ext(name)]
+    image_names, deleted_names = _collect_image_rewrites(topic, Path(path) / 'images')
 
-                pattern = r'<img src="([a-zA-Z0-9_:\/\-\.]+)" alt=".*?" data-base62-sha1="(.*?)"'
-                matches = re.findall(pattern, html_content) # '?' is not included
-                if not matches:
-                    continue
-                src_with_real_exts = [t[0] for t in matches]
-                real_names = [t[1] for t in matches]
-                src_with_real_exts = [src if Shuiyuan_Base in src else Shuiyuan_Base[:-1] + src for src in src_with_real_exts]
-                real_exts = [re.search(r'\.([a-zA-Z0-9]+)$', src).group(1) for src in src_with_real_exts]
-                for src, name, ext in zip(src_with_real_exts, real_names, real_exts):
-                    download_image(ReqParam(src), path + 'images', name + '.' + ext)
-                    ret.append(name + '.' + ext)
+    for deleted_name in deleted_names:
+        try:
+            name_with_fake_exts.remove(deleted_name)
+        except ValueError:
+            continue
 
-        return page_no, ret
-    image_names = fetch_image()
-    for name in deleted_names:
-        name_with_fake_exts.remove(name)
-    image_names.sort(key=lambda x: x[0])
-    img_names_flatten = [y for x in image_names for y in x[1]]
-    for sha1_with_ext, name in zip(name_with_fake_exts, img_names_flatten):
+    for sha1_with_ext, name in zip(name_with_fake_exts, image_names):
         pattern = r'!\[.*?\]\(upload://{}\)'.format(re.escape(sha1_with_ext))
-        md_content = re.sub(pattern, '![](upload://{})'.format(name), md_content)
+        md_content = re.sub(pattern, f'![](upload://{name})', md_content)
 
-    def replace(matchs):
-        old_link = matchs.group(0)
+    def replace(match_obj: re.Match[str]) -> str:
+        old_link = match_obj.group(0)
         ext_match = re.search(r'\.([a-zA-Z0-9]+)', old_link)
         if ext_match and ext_match.group(0) not in image_extensions:
             return old_link
-        new_link = old_link.replace('upload://', './images/')
-        return new_link
+        return old_link.replace('upload://', './images/')
 
-    md_content = re.sub(r'!\[.*?\]\(upload://([a-zA-Z0-9\.]+)\)', replace, md_content)
-    with open(path + filename, 'w', encoding='utf-8') as file:
-        file.write(md_content)
+    md_content = UPLOAD_IMAGE_PATTERN.sub(replace, md_content)
+    file_path.write_text(md_content, encoding='utf-8')

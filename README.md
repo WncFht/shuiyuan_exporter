@@ -6,8 +6,8 @@
 
 导出主流程现在已经收敛到 `shuiyuan_cache/export/` 包内，大致分成 5 步：
 
-1. `raw_markdown.py` 拉取整帖的原始 Markdown 内容。
-2. `shuiyuan_cache/export/image_handler.py` 下载图片并把 `upload://...` 替换成 `./images/...`。
+1. `raw_markdown.py` 优先从 `cache/raw/topics/<topic_id>/pages/raw/` 读取整帖原始 Markdown，缺失时才补抓。
+2. `shuiyuan_cache/export/image_handler.py` 优先复用 `cache/media/images/` 中的图片，并把 `upload://...` 替换成 `./images/...`。
 3. `shuiyuan_cache/export/attachments_handler.py` 把附件链接替换成论坛上的真实 URL。
 4. `shuiyuan_cache/export/video_handler.py` 把视频链接替换成真实 URL。
 5. `shuiyuan_cache/export/audio_handler.py` 把音频链接替换成真实 URL。
@@ -123,6 +123,23 @@ uv run python -m shuiyuan_cache.cli.auth_cli setup --browser chromium
 ```
 
 - `sync_cli` 现在会优先读取 `cache/auth/auth.json` 中保存的 Cookie；只有没有可用登录态时，才回退到 `cookies.txt`
+
+## 推荐工作流（当前实现）
+
+如果你后面准备把这套东西继续发展成 skill，当前最推荐的实际使用顺序是：
+
+```text
+auth -> sync -> query/summary -> export
+```
+
+也就是：
+
+1. 先用 `auth_cli` 建立长期可复用登录态；
+2. 再用 `sync_cli` 把 topic 同步到本地缓存；
+3. 优先用 `query_cli` / `summary_cli` 在本地分析；
+4. 最后按需用 `export_cli` 生成 Markdown。
+
+相比直接“每次导出都重新联网抓”，这更适合后续做批量分析和 skill。
 
 ## 快速开始
 

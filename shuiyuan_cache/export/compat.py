@@ -202,15 +202,14 @@ def code_block_fix(content:str)->str:
 def get_main_raw_post(topic:str, post:str)->str:
     if not topic:
         return ""
-    if post:
-        url_raw = Shuiyuan_Raw + topic + "/" + post
-    else:
-        url_raw = Shuiyuan_Raw + topic + "/1"
-    response = make_request(ReqParam(url=url_raw), once=False)
-    if response.status_code == 200:
-        data = response.text
-        return data
-    return ""
+    try:
+        from shuiyuan_cache.export.cache_bridge import get_export_cache_bridge
+
+        topic_id = topic[1:] if topic.startswith('L') else topic
+        post_number = int(post) if post else 1
+        return get_export_cache_bridge().get_post_raw(topic_id, post_number)
+    except Exception:
+        return ""
 
 
 def add_md_quote(md_text: str) -> str:
