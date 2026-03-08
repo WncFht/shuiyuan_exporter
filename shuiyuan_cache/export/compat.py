@@ -2,11 +2,11 @@ import concurrent.futures
 import json
 import os.path
 import re
+from collections.abc import Callable
 from dataclasses import dataclass
 from functools import cache
 from pathlib import Path
 from typing import Any
-from collections.abc import Callable
 
 import requests
 from requests.adapters import HTTPAdapter
@@ -68,11 +68,16 @@ class ReqParam:
     retries: int = 3
     delay: int = 1
 
-    def __init__(self, url: str):
+    def __init__(
+        self,
+        url: str,
+        cookie_path: str = _cookie_default_path,
+        cache_root: str = _default_cache_root,
+    ):
         self.url = url
         self.headers = {
             "User-Agent": UserAgentStr,
-            "Cookie": resolve_auth_cookie_header(),
+            "Cookie": resolve_auth_cookie_header(cookie_path, cache_root),
         }
 
 
@@ -80,12 +85,14 @@ _url_retry = Retry(connect=3, backoff_factor=0.5)
 adapter = HTTPAdapter(max_retries=_url_retry)
 
 
-def init_session():
+def init_session(
+    cookie_path: str = _cookie_default_path, cache_root: str = _default_cache_root
+):
     shuiyuan_session = requests.Session()
     shuiyuan_session.headers.update(
         {
             "User-Agent": UserAgentStr,
-            "Cookie": resolve_auth_cookie_header(),
+            "Cookie": resolve_auth_cookie_header(cookie_path, cache_root),
         }
     )
     shuiyuan_session.mount("http://", adapter)
@@ -93,7 +100,8 @@ def init_session():
     return shuiyuan_session
 
 
-_init_session, _req_session = False, None
+_init_session = False
+_req_session = None
 _request_posts_cache: dict[str, Any] = {}
 
 
@@ -203,7 +211,12 @@ def code_block_fix(content: str) -> str:
     return fixed_content
 
 
-def get_main_raw_post(topic: str, post: str) -> str:
+def get_main_raw_post(
+    topic: str,
+    post: str,
+    cache_root: str = _default_cache_root,
+    cookie_path: str = _cookie_default_path,
+) -> str:
     if not topic:
         return ""
     try:
@@ -211,7 +224,10 @@ def get_main_raw_post(topic: str, post: str) -> str:
 
         topic_id = topic[1:] if topic.startswith("L") else topic
         post_number = int(post) if post else 1
-        return get_export_cache_bridge().get_post_raw(topic_id, post_number)
+        return get_export_cache_bridge(
+            cache_root=cache_root,
+            cookie_path=cookie_path,
+        ).get_post_raw(topic_id, post_number)
     except Exception:
         return ""
 
@@ -229,7 +245,11 @@ def add_md_quote(md_text: str) -> str:
     return quoted_text
 
 
-def quote_in_shuiyuan(md_text: str) -> str:
+def quote_in_shuiyuan(
+    md_text: str,
+    cache_root: str = _default_cache_root,
+    cookie_path: str = _cookie_default_path,
+) -> str:
     """
     parse links like https://shuiyuan.sjtu.edu.cn/t/topic/XXXXX(/XXXX) to quote
     """
@@ -246,7 +266,12 @@ def quote_in_shuiyuan(md_text: str) -> str:
     def replace(match: re.Match) -> str:
         topic = match[1]
         post = match[3]
-        quote_text = get_main_raw_post(topic, post)
+        quote_text = get_main_raw_post(
+            topic,
+            post,
+            cache_root=cache_root,
+            cookie_path=cookie_path,
+        )
         return add_md_quote(quote_text)
 
     replaced_text = re.sub(bare_link_pattern, replace, temp_text)

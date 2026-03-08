@@ -8,7 +8,10 @@ from shuiyuan_cache.export.raw_markdown import export_raw_post, normalize_topic_
 
 
 def export_topic(
-    topic: str | int, save_dir: str = default_save_dir
+    topic: str | int,
+    save_dir: str = default_save_dir,
+    cache_root: str = "cache",
+    cookie_path: str = "cookies.txt",
 ) -> TopicExportResult:
     topic_id = normalize_topic_id(topic)
     print(f"topic:{topic_id} 文字备份中...")
@@ -18,7 +21,12 @@ def export_topic(
 
     total_started_at = time.time()
     stage_started_at = time.time()
-    filename = export_raw_post(topic_dir, topic_id)
+    filename = export_raw_post(
+        topic_dir,
+        topic_id,
+        cache_root=cache_root,
+        cookie_path=cookie_path,
+    )
     raw_seconds = time.time() - stage_started_at
     print(f"文字爬取耗时: {raw_seconds} 秒")
 
@@ -30,7 +38,13 @@ def export_topic(
     }
     for key, label, handler in MEDIA_REWRITE_STEPS:
         stage_started_at = time.time()
-        handler(path=f"{topic_dir}/", filename=filename, topic=topic_id)
+        handler(
+            path=f"{topic_dir}/",
+            filename=filename,
+            topic=topic_id,
+            cache_root=cache_root,
+            cookie_path=cookie_path,
+        )
         elapsed = time.time() - stage_started_at
         timings[key] = elapsed
         print(f"{label}: {elapsed} 秒")

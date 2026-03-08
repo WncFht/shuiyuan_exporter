@@ -1,0 +1,4 @@
+interface:
+  display_name: "Shuiyuan Cache Skill"
+  short_description: "Cache-first Shuiyuan topic sync, query, and summary"
+  default_prompt: "Use this skill cache-first: inspect a Shuiyuan topic, sync only when cache is missing or the user asks to refresh, then answer with structured JSON via query or summary scripts; use Markdown export only when explicitly requested, and keep runtime data outside the repo under the skill runtime directory."

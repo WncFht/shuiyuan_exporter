@@ -25,6 +25,18 @@
 
 这点对后续做 skill 很重要：如果你后面想做“访问 shuiyuan 并抓取帖子”的 skill，可以直接复用这里的请求方式和帖子解析流程，不一定要复用 CLI 交互。
 
+## Skill 形态
+
+这个仓库现在正在朝“**仓库本身就是 Codex skill repo**”的方向演进。
+
+也就是说：
+
+- 根目录会直接提供 `SKILL.md`、`agents/`、`references/`、`scripts/`
+- `shuiyuan_cache/` 继续作为 skill 内部的实现层
+- 运行时数据默认放到仓库外，例如 `~/.local/share/shuiyuan-cache-skill/`
+
+如果后面你把整个仓库 clone 到 `~/.codex/skills/shuiyuan-cache-skill/`，它就可以直接作为完整 skill 使用。
+
 ## 环境要求
 
 - macOS / Linux / Windows

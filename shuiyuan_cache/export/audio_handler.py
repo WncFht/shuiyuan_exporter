@@ -29,9 +29,15 @@ def _extract_audio_urls(cooked_content: str) -> list[str]:
     ]
 
 
-def _collect_audio_links(topic: str | int) -> list[tuple[str, str]]:
+def _collect_audio_links(
+    topic: str | int,
+    cache_root: str = "cache",
+    cookie_path: str = "cookies.txt",
+) -> list[tuple[str, str]]:
     topic_id = _normalize_topic_id(topic)
-    cache_bridge = get_export_cache_bridge()
+    cache_bridge = get_export_cache_bridge(
+        cache_root=cache_root, cookie_path=cookie_path
+    )
     url_sha1s: list[tuple[str, str]] = []
     for post in cache_bridge.iter_json_posts(topic_id):
         cooked_match = _extract_audio_urls(post.get("cooked") or "")
@@ -48,10 +54,20 @@ def _collect_audio_links(topic: str | int) -> list[tuple[str, str]]:
     return url_sha1s
 
 
-def audio_replace(path: str, filename: str, topic: str):
+def audio_replace(
+    path: str,
+    filename: str,
+    topic: str,
+    cache_root: str = "cache",
+    cookie_path: str = "cookies.txt",
+):
     print("文件替换中...")
     file_path = Path(path) / filename
     md_content = file_path.read_text(encoding="utf-8")
-    for url, sha1_with_ext in _collect_audio_links(topic):
+    for url, sha1_with_ext in _collect_audio_links(
+        topic,
+        cache_root=cache_root,
+        cookie_path=cookie_path,
+    ):
         md_content = md_content.replace(f"upload://{sha1_with_ext}", url)
     file_path.write_text(md_content, encoding="utf-8")

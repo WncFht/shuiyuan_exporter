@@ -26,10 +26,15 @@ def _has_known_image_ext(name: str) -> bool:
 
 
 def _collect_image_rewrites(
-    topic: str | int, output_image_dir: Path
+    topic: str | int,
+    output_image_dir: Path,
+    cache_root: str = "cache",
+    cookie_path: str = "cookies.txt",
 ) -> tuple[list[str], list[str]]:
     topic_id = _normalize_topic_id(topic)
-    cache_bridge = get_export_cache_bridge()
+    cache_bridge = get_export_cache_bridge(
+        cache_root=cache_root, cookie_path=cookie_path
+    )
     deleted_names: list[str] = []
     real_names: list[str] = []
 
@@ -54,7 +59,13 @@ def _collect_image_rewrites(
     return real_names, deleted_names
 
 
-def img_replace(path: str, filename: str, topic: str):
+def img_replace(
+    path: str,
+    filename: str,
+    topic: str,
+    cache_root: str = "cache",
+    cookie_path: str = "cookies.txt",
+):
     print("图片载入中...")
     file_path = Path(path) / filename
     md_content = file_path.read_text(encoding="utf-8")
@@ -64,7 +75,12 @@ def img_replace(path: str, filename: str, topic: str):
         for name in UPLOAD_IMAGE_PATTERN.findall(md_content)
         if _has_known_image_ext(name)
     ]
-    image_names, deleted_names = _collect_image_rewrites(topic, Path(path) / "images")
+    image_names, deleted_names = _collect_image_rewrites(
+        topic,
+        Path(path) / "images",
+        cache_root=cache_root,
+        cookie_path=cookie_path,
+    )
 
     for deleted_name in deleted_names:
         try:
