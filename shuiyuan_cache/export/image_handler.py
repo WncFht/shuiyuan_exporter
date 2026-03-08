@@ -37,6 +37,8 @@ def _collect_image_rewrites(
     )
     deleted_names: list[str] = []
     real_names: list[str] = []
+    unique_tasks: list[tuple[str, str, str]] = []
+    seen_tasks: set[tuple[str, str, str]] = set()
 
     for post in cache_bridge.iter_json_posts(topic_id):
         html_content = post.get("cooked") or ""
@@ -53,9 +55,14 @@ def _collect_image_rewrites(
             if not ext_match:
                 continue
             ext = ext_match.group(1)
-            cache_bridge.ensure_output_image(name, ext, resolved_url, output_image_dir)
             real_names.append(f"{name}.{ext}")
+            task = (name, ext, resolved_url)
+            if task in seen_tasks:
+                continue
+            seen_tasks.add(task)
+            unique_tasks.append(task)
 
+    cache_bridge.ensure_output_images(unique_tasks, output_image_dir)
     return real_names, deleted_names
 
 
@@ -89,7 +96,7 @@ def img_replace(
             continue
 
     for sha1_with_ext, name in zip(name_with_fake_exts, image_names):
-        pattern = rf"!\[.*?\]\(upload://{re.escape(sha1_with_ext)}\)"
+        pattern = rf"!\[.*?]\(upload://{re.escape(sha1_with_ext)}\)"
         md_content = re.sub(pattern, f"![](upload://{name})", md_content)
 
     def replace(match_obj: re.Match[str]) -> str:

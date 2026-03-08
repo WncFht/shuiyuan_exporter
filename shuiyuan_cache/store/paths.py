@@ -26,8 +26,8 @@ class CachePaths:
     def raw_pages_dir(self, topic_id: int) -> Path:
         return self.topic_root(topic_id) / "pages" / "raw"
 
-    def post_raw_dir(self, topic_id: int) -> Path:
-        return self.topic_root(topic_id) / "posts"
+    def post_ref_dir(self, topic_id: int) -> Path:
+        return self.root / "raw" / "post_refs" / str(topic_id)
 
     def json_page_path(self, topic_id: int, page_no: int) -> Path:
         return self.json_pages_dir(topic_id) / f"{page_no:04d}.json"
@@ -36,7 +36,7 @@ class CachePaths:
         return self.raw_pages_dir(topic_id) / f"{page_no:04d}.md"
 
     def post_raw_path(self, topic_id: int, post_number: int) -> Path:
-        return self.post_raw_dir(topic_id) / f"{post_number:06d}.raw.md"
+        return self.post_ref_dir(topic_id) / f"{post_number:06d}.raw.md"
 
     def image_path(self, media_key: str, ext: str) -> Path:
         bucket = (media_key[:2] or "xx").lower()

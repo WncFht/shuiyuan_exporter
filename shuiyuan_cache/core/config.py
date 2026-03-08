@@ -15,6 +15,9 @@ class CacheConfig:
     json_page_size: int = 20
     tail_refresh_pages: int = 2
     download_images: bool = True
+    page_fetch_workers: int = 2
+    image_download_workers: int = 4
+    export_image_workers: int = 4
 
     @property
     def db_path(self) -> Path:

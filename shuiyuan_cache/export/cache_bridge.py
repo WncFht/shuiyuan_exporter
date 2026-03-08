@@ -1,8 +1,10 @@
 import json
 import shutil
+from concurrent.futures import ThreadPoolExecutor
 from functools import lru_cache
 from pathlib import Path
 from collections.abc import Iterator
+from threading import local
 
 from shuiyuan_cache.core.config import CacheConfig
 from shuiyuan_cache.fetch.session import ShuiyuanSession
@@ -22,6 +24,7 @@ class ExportCacheBridge:
         self.raw_store = RawStore(self.paths)
         self.session = ShuiyuanSession(self.config)
         self.fetcher = TopicFetcher(self.config, self.session)
+        self._worker_local = local()
 
     def resolve_topic_id(self, topic: str | int) -> int:
         return TopicFetcher.resolve_topic_id(topic)
@@ -102,6 +105,64 @@ class ExportCacheBridge:
                     cache_file.write(chunk)
         shutil.copyfile(cache_image_path, output_path)
         return output_path
+
+    def ensure_output_images(
+        self,
+        tasks: list[tuple[str, str, str]],
+        output_dir: str | Path,
+    ) -> None:
+        if not tasks:
+            return
+        output_dir = Path(output_dir)
+        output_dir.mkdir(parents=True, exist_ok=True)
+        max_workers = min(
+            max(self.config.export_image_workers, 1),
+            len(tasks),
+        )
+        if max_workers == 1:
+            for task in tasks:
+                self._ensure_output_image_task(task, output_dir)
+            return
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            list(
+                executor.map(
+                    lambda task: self._ensure_output_image_task(task, output_dir), tasks
+                )
+            )
+
+    def _ensure_output_image_task(
+        self,
+        task: tuple[str, str, str],
+        output_dir: Path,
+    ) -> Path:
+        media_key, file_ext, resolved_url = task
+        normalized_ext = self._normalize_ext(file_ext)
+        output_path = output_dir / f"{media_key}{normalized_ext}"
+        if output_path.exists() and output_path.stat().st_size > 0:
+            return output_path
+
+        cache_image_path = self.paths.ensure_parent(
+            self.paths.image_path(media_key, normalized_ext)
+        )
+        if cache_image_path.exists() and cache_image_path.stat().st_size > 0:
+            shutil.copyfile(cache_image_path, output_path)
+            return output_path
+
+        session = self._get_worker_session()
+        response = session.get_binary(session.absolute_url(resolved_url))
+        with open(cache_image_path, "wb") as cache_file:
+            for chunk in response.iter_content(chunk_size=8192):
+                if chunk:
+                    cache_file.write(chunk)
+        shutil.copyfile(cache_image_path, output_path)
+        return output_path
+
+    def _get_worker_session(self) -> ShuiyuanSession:
+        worker_session = getattr(self._worker_local, "session", None)
+        if worker_session is None:
+            worker_session = ShuiyuanSession(self.config)
+            self._worker_local.session = worker_session
+        return worker_session
 
     @staticmethod
     def _normalize_ext(file_ext: str) -> str:

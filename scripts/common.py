@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# ruff: noqa: E402
 from __future__ import annotations
 
 import argparse
@@ -11,6 +12,10 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
+from shuiyuan_cache.core.progress import (
+    ProgressCallback,
+    build_stream_progress_reporter,
+)
 from shuiyuan_cache.skill_api.runtime import (
     default_skill_cache_root,
     default_skill_cookie_path,
@@ -18,28 +23,34 @@ from shuiyuan_cache.skill_api.runtime import (
 )
 
 
-def add_runtime_args(parser: argparse.ArgumentParser, *, include_export_root: bool = False) -> None:
+def add_runtime_args(
+    parser: argparse.ArgumentParser, *, include_export_root: bool = False
+) -> None:
     parser.add_argument(
-        '--cache-root',
+        "--cache-root",
         default=str(default_skill_cache_root()),
-        help='Skill runtime cache root',
+        help="Skill runtime cache root",
     )
     parser.add_argument(
-        '--cookie-path',
+        "--cookie-path",
         default=str(default_skill_cookie_path()),
-        help='Fallback cookie file path',
+        help="Fallback cookie file path",
     )
     parser.add_argument(
-        '--base-url',
-        default='https://shuiyuan.sjtu.edu.cn',
-        help='Shuiyuan base URL',
+        "--base-url",
+        default="https://shuiyuan.sjtu.edu.cn",
+        help="Shuiyuan base URL",
     )
     if include_export_root:
         parser.add_argument(
-            '--export-root',
+            "--export-root",
             default=str(default_skill_export_root()),
-            help='Markdown export root',
+            help="Markdown export root",
         )
+
+
+def build_progress_reporter(prefix: str) -> ProgressCallback:
+    return build_stream_progress_reporter(prefix=prefix, stream=sys.stderr)
 
 
 def print_json(payload: Any) -> None:

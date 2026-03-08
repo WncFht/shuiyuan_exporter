@@ -2,6 +2,8 @@
 
 All bundled scripts print JSON with `ensure_ascii=False` and `indent=2`.
 
+When a script needs to sync cache data first, progress logs are written to `stderr`; the JSON schema on `stdout` is unchanged.
+
 ## `inspect_topic.py`
 
 Returns:

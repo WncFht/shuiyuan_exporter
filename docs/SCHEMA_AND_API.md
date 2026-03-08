@@ -54,8 +54,9 @@ cache/
           raw/
             0001.md
             0002.md
-        posts/
-          000001.raw.md
+    post_refs/
+      <topic_id>/
+        000001.raw.md
   media/
     images/
       <bucket>/
@@ -97,7 +98,7 @@ cache/
 - 内容：原始文本响应
 - 用途：保留原始 Markdown 视图、后续重建 raw_markdown / quote 信息
 
-#### `posts/000001.raw.md`
+#### `post_refs/<topic_id>/000001.raw.md`
 
 - 来源：`/raw/<topic>/1`
 - 内容：单帖原始 raw

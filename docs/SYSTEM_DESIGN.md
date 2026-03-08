@@ -230,7 +230,7 @@ cache/raw/topics/<topic_id>/
   pages/json/0002.json
   pages/raw/0001.md
   pages/raw/0002.md
-  posts/000001.raw.md
+raw/post_refs/<topic_id>/000001.raw.md
 ```
 
 ### 5.3 文件命名原则

@@ -3,6 +3,7 @@ from pathlib import Path
 
 from shuiyuan_cache.core.config import CacheConfig
 from shuiyuan_cache.core.exceptions import ShuiyuanCacheError
+from shuiyuan_cache.core.progress import build_stream_progress_reporter
 from shuiyuan_cache.sync.topic_sync import TopicSyncService
 
 
@@ -41,6 +42,7 @@ def main(argv=None) -> int:
             mode=args.mode,
             with_images=not args.no_images,
             force=args.force,
+            progress_callback=build_stream_progress_reporter(prefix="sync"),
         )
     except ShuiyuanCacheError as exc:
         service.close()

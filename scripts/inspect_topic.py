@@ -8,8 +8,10 @@ from shuiyuan_cache.skill_api import ShuiyuanSkillAPI
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description='Inspect Shuiyuan topic cache state for the skill runtime.')
-    parser.add_argument('topic', help='Topic id or Shuiyuan topic URL')
+    parser = argparse.ArgumentParser(
+        description="Inspect Shuiyuan topic cache state for the skill runtime."
+    )
+    parser.add_argument("topic", help="Topic id or Shuiyuan topic URL")
     add_runtime_args(parser)
     return parser
 
@@ -25,5 +27,5 @@ def main() -> int:
     return 0
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     raise SystemExit(main())

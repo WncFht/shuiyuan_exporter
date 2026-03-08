@@ -15,7 +15,12 @@ class ShuiyuanSession:
         self.config = config
         self.session = requests.Session()
         retry = Retry(
-            connect=config.retry_connect, backoff_factor=config.backoff_factor
+            connect=config.retry_connect,
+            status=config.retry_connect,
+            backoff_factor=config.backoff_factor,
+            status_forcelist=[429, 500, 502, 503, 504],
+            allowed_methods=frozenset({"GET"}),
+            respect_retry_after_header=True,
         )
         adapter = HTTPAdapter(max_retries=retry)
         self.session.mount("http://", adapter)

@@ -119,7 +119,7 @@ cache/
 - `cache/raw/topics/<topic_id>/topic.json`：topic 元数据；
 - `cache/raw/topics/<topic_id>/pages/json/*.json`：分页 JSON；
 - `cache/raw/topics/<topic_id>/pages/raw/*.md`：分页 raw markdown；
-- `cache/raw/topics/<topic_id>/posts/*.raw.md`：按楼层缓存的 raw；
+- `cache/raw/post_refs/<topic_id>/*.raw.md`：按需抓取的单帖 raw；
 - `cache/media/images/`：去重后的图片缓存；
 - `cache/db/shuiyuan.sqlite`：结构化索引数据库。
 
@@ -150,7 +150,7 @@ uv run python -m shuiyuan_cache.cli.summary_cli 456491 --recent-days 7
 当前导出链路已经改成“缓存优先”：
 
 - 优先读 `cache/raw/topics/<topic_id>/` 下已有的 `topic.json`、分页 raw、分页 json；
-- 引用楼层时优先读 `posts/*.raw.md`；
+- 引用楼层时优先读 `raw/post_refs/<topic_id>/*.raw.md`；
 - 图片优先复用 `cache/media/images/`；
 - 只有本地缺失时才补抓网络。
 
