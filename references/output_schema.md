@@ -4,6 +4,76 @@ All bundled scripts print JSON with `ensure_ascii=False` and `indent=2`.
 
 When a script needs to sync cache data first, progress logs are written to `stderr`; the JSON schema on `stdout` is unchanged.
 
+## `search_forum.py`
+
+Returns:
+
+- `query`
+- `mode`
+- `page`
+- `search_context`
+- `topic_count`
+- `post_count`
+- `user_count`
+- `group_count`
+- `tag_count`
+- `category_count`
+- `has_more_full_page_results`
+- `topics[]`
+- `posts[]`
+
+Each item in `topics[]` includes:
+
+- `id`
+- `title`
+- `slug`
+- `posts_count`
+- `views`
+- `created_at`
+- `last_posted_at`
+- `url`
+
+Each item in `posts[]` includes:
+
+- `topic_id`
+- `topic_title`
+- `topic_slug`
+- `post_number`
+- `username`
+- `created_at`
+- `blurb`
+- `url`
+
+## `trace_author.py`
+
+Returns:
+
+- `author`
+- `keyword`
+- `query`
+- `live_search`
+- `topic_candidates[]`
+- `cached_topics[]`
+
+Each item in `topic_candidates[]` includes:
+
+- `topic_id`
+- `topic_title`
+- `topic_url`
+- `live_post_hits`
+- `latest_live_hit_at`
+
+Each item in `cached_topics[]` includes:
+
+- `topic_id`
+- `topic_title`
+- `topic_url`
+- `live_post_hits`
+- `latest_live_hit_at`
+- `ensure_cache`
+- `cached_query`
+- `error`
+
 ## `inspect_topic.py`
 
 Returns:

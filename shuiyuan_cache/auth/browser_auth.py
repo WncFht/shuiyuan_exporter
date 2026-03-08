@@ -11,6 +11,8 @@ from shuiyuan_cache.auth.storage_state import (
     write_cookie_header,
 )
 from shuiyuan_cache.core.config import CacheConfig
+from shuiyuan_cache.core.exceptions import FetchError
+from shuiyuan_cache.fetch.session import ShuiyuanSession
 
 
 @dataclass(slots=True)
@@ -91,7 +93,7 @@ class BrowserAuthManager:
             finally:
                 context.close()
 
-    def auth_status(self) -> dict:
+    def auth_status(self, check_live: bool = False) -> dict:
         storage_exists = self.config.storage_state_path.exists()
         cookie_exists = self.config.cookie_path.exists()
         cookie_text = (
@@ -99,7 +101,7 @@ class BrowserAuthManager:
             if cookie_exists
             else ""
         )
-        return {
+        payload = {
             "base_url": self.config.base_url,
             "profile_dir": str(self.config.browser_profile_dir),
             "profile_exists": self.config.browser_profile_dir.exists(),
@@ -112,7 +114,32 @@ class BrowserAuthManager:
             else 0,
             "cookie_path": str(self.config.cookie_path),
             "cookie_file_exists": cookie_exists,
+            "cookie_file_format": "http_header",
             "cookie_header_length": len(cookie_text),
+        }
+        if check_live:
+            payload.update(self._live_auth_status())
+        return payload
+
+    def _live_auth_status(self) -> dict:
+        checked_url = f"{self.config.base_url.rstrip('/')}/latest"
+        session = ShuiyuanSession(self.config)
+        try:
+            session.get_text("/latest")
+        except FetchError as exc:
+            return {
+                "live_check_enabled": True,
+                "live_check_url": checked_url,
+                "live_check_ok": False,
+                "live_check_error": str(exc),
+            }
+        finally:
+            session.close()
+        return {
+            "live_check_enabled": True,
+            "live_check_url": checked_url,
+            "live_check_ok": True,
+            "live_check_error": None,
         }
 
     def _save_auth_artifacts(

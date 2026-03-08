@@ -2,6 +2,20 @@
 
 ## Auth expired or missing
 
+First check whether the saved login state still works against the live forum:
+
+```bash
+uv run python -m shuiyuan_cache.cli.auth_cli status \
+  --cache-root "$HOME/.local/share/shuiyuan-cache-skill/cache" \
+  --cookie-path "$HOME/.local/share/shuiyuan-cache-skill/cookies.txt" \
+  --check-live --json
+```
+
+Notes:
+
+- `cookies.txt` stores an HTTP `Cookie` header string, not a curl cookie-jar file
+- `auth_cli setup` opens a dedicated browser profile and waits for Enter after you finish login in the browser window
+
 Rebuild auth state with the same runtime paths used by the skill scripts:
 
 ```bash

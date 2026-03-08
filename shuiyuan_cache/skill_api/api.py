@@ -10,6 +10,7 @@ from shuiyuan_cache.analysis.topic_summary import TopicSummaryService
 from shuiyuan_cache.core.config import CacheConfig
 from shuiyuan_cache.core.progress import ProgressCallback
 from shuiyuan_cache.export.topic_exporter import export_topic
+from shuiyuan_cache.fetch.search_fetcher import ForumSearchFetcher
 from shuiyuan_cache.fetch.topic_fetcher import TopicFetcher
 from shuiyuan_cache.skill_api.runtime import (
     build_skill_config,
@@ -63,6 +64,116 @@ class ShuiyuanSkillAPI:
         )
         payload["has_issues"] = bool(result.issues)
         return payload
+
+    def search_forum(
+        self,
+        query: str,
+        mode: str = "header",
+        page: int = 1,
+        limit_topics: int = 5,
+        limit_posts: int = 5,
+        search_context_type: str | None = None,
+        search_context_id: str | int | None = None,
+    ) -> dict:
+        fetcher = ForumSearchFetcher(self.config)
+        try:
+            return fetcher.search(
+                query=query,
+                mode=mode,
+                page=page,
+                limit_topics=limit_topics,
+                limit_posts=limit_posts,
+                search_context_type=search_context_type,
+                search_context_id=search_context_id,
+            )
+        finally:
+            fetcher.close()
+
+    def search_forum_topics(
+        self,
+        term: str,
+        limit_topics: int = 5,
+        limit_posts: int = 5,
+    ) -> dict:
+        return self.search_forum(
+            query=term,
+            mode="header",
+            limit_topics=limit_topics,
+            limit_posts=limit_posts,
+        )
+
+    def trace_author(
+        self,
+        author: str,
+        keyword: str | None = None,
+        page: int = 1,
+        limit_topics: int = 5,
+        limit_posts: int = 10,
+        cache_topics: int = 3,
+        refresh_mode: str = "none",
+        download_images: bool = False,
+        force_sync: bool = False,
+        progress_callback: ProgressCallback | None = None,
+    ) -> dict:
+        normalized_author = author.strip()
+        if not normalized_author:
+            raise ValueError("Author cannot be empty")
+        normalized_keyword = keyword.strip() if keyword else None
+        query = self._build_author_trace_query(normalized_author, normalized_keyword)
+        live_search = self.search_forum(
+            query=query,
+            mode="full_page",
+            page=page,
+            limit_topics=limit_topics,
+            limit_posts=limit_posts,
+        )
+        topic_candidates = self._build_topic_candidates(
+            live_search,
+            self.config.base_url,
+        )
+        cached_topics_payload: list[dict] = []
+        for candidate in topic_candidates[: max(cache_topics, 0)]:
+            topic_id = candidate["topic_id"]
+            payload = {
+                "topic_id": topic_id,
+                "topic_title": candidate["topic_title"],
+                "topic_url": candidate["topic_url"],
+                "live_post_hits": candidate["live_post_hits"],
+                "latest_live_hit_at": candidate["latest_live_hit_at"],
+                "ensure_cache": None,
+                "cached_query": None,
+                "error": None,
+            }
+            try:
+                ensure_result = self.ensure_topic_cached(
+                    topic=topic_id,
+                    refresh_mode=refresh_mode,
+                    download_images=download_images,
+                    force=force_sync,
+                    progress_callback=progress_callback,
+                )
+                payload["ensure_cache"] = self._summarize_ensure_result(ensure_result)
+                payload["cached_query"] = self.query_topic_posts(
+                    topic=topic_id,
+                    keyword=normalized_keyword,
+                    author=normalized_author,
+                    limit=limit_posts,
+                    order="desc",
+                    include_images=False,
+                    ensure_cached=False,
+                )
+            except Exception as exc:
+                payload["error"] = str(exc)
+            cached_topics_payload.append(payload)
+
+        return {
+            "author": normalized_author,
+            "keyword": normalized_keyword,
+            "query": query,
+            "live_search": live_search,
+            "topic_candidates": topic_candidates,
+            "cached_topics": cached_topics_payload,
+        }
 
     def ensure_topic_cached(
         self,
@@ -328,6 +439,82 @@ class ShuiyuanSkillAPI:
                 }
             )
         return targets
+
+    @staticmethod
+    def _build_author_trace_query(author: str, keyword: str | None) -> str:
+        parts = []
+        if keyword:
+            parts.append(keyword)
+        parts.extend([f"user:{author}", "order:latest"])
+        return " ".join(parts)
+
+    @staticmethod
+    def _build_topic_candidates(
+        live_search: dict,
+        base_url: str,
+    ) -> list[dict]:
+        candidates: dict[int, dict] = {}
+        for topic in live_search.get("topics", []):
+            topic_id = topic.get("id")
+            if topic_id is None:
+                continue
+            candidates[topic_id] = {
+                "topic_id": topic_id,
+                "topic_title": topic.get("title"),
+                "topic_url": topic.get("url"),
+                "live_post_hits": 0,
+                "latest_live_hit_at": None,
+            }
+        for post in live_search.get("posts", []):
+            topic_id = post.get("topic_id")
+            if topic_id is None:
+                continue
+            entry = candidates.setdefault(
+                topic_id,
+                {
+                    "topic_id": topic_id,
+                    "topic_title": post.get("topic_title"),
+                    "topic_url": None,
+                    "live_post_hits": 0,
+                    "latest_live_hit_at": None,
+                },
+            )
+            entry["topic_title"] = entry.get("topic_title") or post.get("topic_title")
+            entry["topic_url"] = entry.get("topic_url") or ShuiyuanSkillAPI._topic_url(
+                base_url,
+                topic_id,
+                post.get("topic_slug") or "topic",
+            )
+            entry["live_post_hits"] += 1
+            created_at = post.get("created_at")
+            if created_at and (
+                not entry["latest_live_hit_at"]
+                or created_at > entry["latest_live_hit_at"]
+            ):
+                entry["latest_live_hit_at"] = created_at
+        return sorted(
+            candidates.values(),
+            key=lambda item: (
+                item.get("live_post_hits", 0),
+                item.get("latest_live_hit_at") or "",
+                item.get("topic_id", 0),
+            ),
+            reverse=True,
+        )
+
+    @staticmethod
+    def _summarize_ensure_result(payload: dict) -> dict:
+        return {
+            "topic_id": payload.get("topic_id"),
+            "cache_hit_before": payload.get("cache_hit_before"),
+            "cache_ready_after": payload.get("cache_ready_after"),
+            "sync_executed": payload.get("sync_executed"),
+            "effective_mode": payload.get("effective_mode"),
+        }
+
+    @staticmethod
+    def _topic_url(base_url: str, topic_id: int, slug: str = "topic") -> str:
+        return f"{base_url.rstrip('/')}/t/{slug}/{topic_id}"
 
     @staticmethod
     def _emit_progress(

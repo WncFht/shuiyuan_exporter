@@ -36,6 +36,10 @@
 
 说明仓库如何从旧导出脚本演进到现在的 cache-first skill repo。
 
+### `docs/DISCOURSE_SEARCH_API_RESEARCH.md`
+
+整理 Discourse 官方搜索 API、Shuiyuan 实测行为，以及多跳搜索可行性。
+
 ## 二、设计参考文档
 
 ### `docs/SCHEMA_AND_API.md`

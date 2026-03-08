@@ -1,4 +1,4 @@
 interface:
   display_name: "Shuiyuan Cache Skill"
-  short_description: "Cache-first Shuiyuan topic sync, query, and summary"
-  default_prompt: "Use this skill cache-first: inspect a Shuiyuan topic, sync only when cache is missing or the user asks to refresh, then answer with structured JSON via query or summary scripts; use Markdown export only when explicitly requested, and keep runtime data outside the repo under the skill runtime directory."
+  short_description: "Live-search, author trace, and cache-first Shuiyuan topic analysis"
+  default_prompt: "Use this skill in four modes: known topic -> cache-first inspect/query/summary; quick live discovery -> search_forum.py --mode header; fuller Discourse syntax search -> search_forum.py --mode full-page; author-centric history lookup -> trace_author.py. Always verify live auth with auth_cli status --check-live when online search is required."

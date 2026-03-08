@@ -93,6 +93,35 @@ uv run python scripts/ensure_cached.py 456491 --refresh-mode full --no-images
 uv run python -m shuiyuan_cache.cli.sync_cli 456491
 ```
 
+## 6. 在线搜索与作者追踪
+
+快速候选搜索（header search）：
+
+```bash
+uv run python scripts/search_forum.py 炒股 --mode header
+uv run python scripts/search_forum.py 搜索 --mode header --context-type topic --context-id 277768
+```
+
+完整 Discourse 搜索（full-page search）：
+
+```bash
+uv run python scripts/search_forum.py '搜索 user:pangbo order:latest' --mode full-page
+uv run python scripts/search_forum.py 'tag:ai after:2025-01-01 order:latest' --mode full-page
+```
+
+作者追踪：
+
+```bash
+uv run python scripts/trace_author.py pangbo
+uv run python scripts/trace_author.py pangbo --keyword 搜索 --cache-topics 3
+```
+
+说明：
+
+- `--mode header` 更适合快速发现候选结果；
+- `--mode full-page` 更适合使用 Discourse 高级搜索语法；
+- `trace_author.py` 会先做在线 full-page 搜索，再可选缓存命中的 top topics 并做本地精确作者过滤。
+
 ## 6. 查询和摘要
 
 查询：

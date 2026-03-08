@@ -55,6 +55,11 @@ def build_parser() -> argparse.ArgumentParser:
         "status", help="Show current auth file status"
     )
     _add_common_args(status_parser)
+    status_parser.add_argument(
+        "--check-live",
+        action="store_true",
+        help="Verify the saved auth state against a live Shuiyuan request",
+    )
     status_parser.add_argument("--json", action="store_true", help="Output JSON")
     return parser
 
@@ -85,7 +90,7 @@ def main(argv=None) -> int:
     manager = BrowserAuthManager(config)
 
     if args.command == "status":
-        payload = manager.auth_status()
+        payload = manager.auth_status(check_live=args.check_live)
         if args.json:
             print(json.dumps(payload, ensure_ascii=False, indent=2))
             return 0

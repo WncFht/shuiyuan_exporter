@@ -102,16 +102,19 @@ class ShuiyuanSession:
             raise last_error
         raise FetchError(f"Request failed for {absolute_url} without response")
 
-    def get_json(self, url: str) -> dict[str, Any]:
-        response = self.get(url)
+    def get_json(self, url: str, **kwargs: Any) -> dict[str, Any]:
+        response = self.get(url, **kwargs)
         return response.json()
 
-    def get_text(self, url: str) -> str:
-        response = self.get(url)
+    def get_text(self, url: str, **kwargs: Any) -> str:
+        response = self.get(url, **kwargs)
         return response.text
 
-    def get_binary(self, url: str) -> requests.Response:
-        return self.get(url, stream=True)
+    def get_binary(self, url: str, **kwargs: Any) -> requests.Response:
+        return self.get(url, stream=True, **kwargs)
+
+    def close(self) -> None:
+        self.session.close()
 
     def _wait_for_request_slot(self) -> None:
         interval = max(self.config.request_interval_seconds, 0.0)
