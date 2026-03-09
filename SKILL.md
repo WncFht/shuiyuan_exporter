@@ -25,6 +25,12 @@ Use one of these workflows first:
 4. **Need author history / author-centered discovery** → author trace
    - `scripts/trace_author.py <username>`
    - optionally add `--keyword` and let it auto-cache the top topic candidates
+5. **Need full-thread study / timeline split / image-based reading** → topic study pipeline
+   - `scripts/inspect_topic.py <topic>`
+   - `scripts/ensure_cached.py <topic> --refresh-mode full` when the user explicitly wants the whole thread and images to be complete
+   - `scripts/export_topic.py <topic>` and prefer the default export root unless the user explicitly wants another copy
+   - `scripts/plan_topic_study.py <topic> --granularity week`
+   - then read representative images directly from the returned local paths
 
 ## Auth: how it actually works
 
@@ -80,6 +86,17 @@ If the task is “搜这个人以前说过什么 / 找这个人相关楼”， p
 2. then cache the top hit topics if needed
 3. then use `query_topic.py --author <username>` for exact local filtering inside those topics
 
+## Whole-topic study guidance
+
+When the user wants to **完整阅读一个楼、按时间线切分、结合图片精读**:
+
+- inspect completeness first, then choose whether a full refresh is worth it
+- prefer the default export root; avoid `--save-dir` unless the user explicitly wants a duplicate export tree
+- use `scripts/plan_topic_study.py` to build weekly or monthly buckets before writing notes
+- for image reading, prefer direct visual reading on local paths
+- if the user explicitly says not to use OCR, do not use OCR
+- if an exported image is missing, fall back to the cache media path when available
+
 ## Runtime paths
 
 - Skill runtime data defaults to `~/.local/share/shuiyuan-cache-skill/`
@@ -101,10 +118,12 @@ If the task is “搜这个人以前说过什么 / 找这个人相关楼”， p
 - `scripts/query_topic.py`
 - `scripts/summarize_topic.py`
 - `scripts/export_topic.py`
+- `scripts/plan_topic_study.py`
 
 ## References
 
 - `docs/DISCOURSE_SEARCH_API_RESEARCH.md`
 - `references/output_schema.md`
+- `references/topic-study-workflow.md`
 - `references/runtime_layout.md`
 - `references/troubleshooting.md`

@@ -1,4 +1,4 @@
 interface:
   display_name: "Shuiyuan Cache Skill"
-  short_description: "Live-search, author trace, and cache-first Shuiyuan topic analysis"
-  default_prompt: "Use this skill in four modes: known topic -> cache-first inspect/query/summary; quick live discovery -> search_forum.py --mode header; fuller Discourse syntax search -> search_forum.py --mode full-page; author-centric history lookup -> trace_author.py. Always verify live auth with auth_cli status --check-live when online search is required."
+  short_description: "Live search, author trace, cache-first analysis, and deep Shuiyuan thread study"
+  default_prompt: "Use this skill in five modes: known topic -> cache-first inspect/query/summary; quick live discovery -> search_forum.py --mode header; fuller Discourse syntax search -> search_forum.py --mode full-page; author-centric history lookup -> trace_author.py; full-thread study -> inspect, optionally full ensure_cached, export to the default export root, then run plan_topic_study.py for weekly/monthly buckets and representative images. Always verify live auth with auth_cli status --check-live when online search is required."
